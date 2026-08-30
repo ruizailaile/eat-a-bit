@@ -14,17 +14,53 @@
 --shadow:0 2px 12px rgba(0,0,0,0.06),0 0 0 0.5px rgba(0,0,0,0.04);
 --shadow-lg:0 12px 40px rgba(0,0,0,0.10),0 4px 12px rgba(0,0,0,0.05),0 0 0 0.5px rgba(0,0,0,0.04);
 --shadow-sm:0 1px 6px rgba(0,0,0,0.05),0 0 0 0.5px rgba(0,0,0,0.03);
---glass-blur:blur(40px) saturate(180%);
---glass-blur-strong:blur(60px) saturate(200%);
---glass-bg:rgba(255,255,255,0.55);
---glass-bg-light:rgba(255,255,255,0.4);
---glass-bg-strong:rgba(255,255,255,0.7);
---glass-border:rgba(0,0,0,0.06);
---glass-border-light:rgba(0,0,0,0.04);
---glass-shadow:0 12px 40px rgba(0,0,0,0.10),0 4px 12px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,0.7),inset 0 -1px 0 rgba(0,0,0,0.02);
---glass-shadow-sm:0 4px 16px rgba(0,0,0,0.06),0 1px 4px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.6);
---glass-shadow-lg:0 16px 48px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.5),inset 0 -1px 0 rgba(255,255,255,0.1);
 --safe-bottom:env(safe-area-inset-bottom,0px);
+
+/* === Liquid Glass System === */
+/* Core material: refraction + reflection + depth + dynamic response */
+--lg-blur:blur(40px) saturate(180%) contrast(105%);
+--lg-blur-strong:blur(60px) saturate(200%) contrast(110%);
+--lg-blur-soft:blur(20px) saturate(160%);
+
+/* Glass fill - translucent with subtle tint */
+--lg-fill:rgba(255,255,255,0.48);
+--lg-fill-light:rgba(255,255,255,0.32);
+--lg-fill-strong:rgba(255,255,255,0.62);
+--lg-fill-thin:rgba(255,255,255,0.22);
+
+/* Edge border - hairline with inner glow */
+--lg-edge:rgba(255,255,255,0.65);
+--lg-edge-inner:rgba(255,255,255,0.25);
+--lg-edge-dark:rgba(0,0,0,0.06);
+
+/* Specular highlights - top sheen + side rim light */
+--lg-sheen:linear-gradient(180deg,rgba(255,255,255,0.55) 0%,rgba(255,255,255,0.12) 35%,rgba(255,255,255,0.04) 55%,rgba(255,255,255,0.14) 100%);
+--lg-rim:linear-gradient(135deg,rgba(255,255,255,0.4) 0%,transparent 30%,transparent 70%,rgba(255,255,255,0.2) 100%);
+--lg-inner-glow:radial-gradient(ellipse 120% 80% at 50% 0%,rgba(255,255,255,0.2),transparent 60%);
+
+/* Shadow - soft ambient + contact shadow + inner depth */
+--lg-shadow:
+  0 20px 50px rgba(0,0,0,0.10),
+  0 8px 20px rgba(0,0,0,0.06),
+  0 2px 6px rgba(0,0,0,0.04),
+  0 0 0 0.5px rgba(0,0,0,0.04),
+  inset 0 1px 0 rgba(255,255,255,0.7),
+  inset 0 -1px 0 rgba(0,0,0,0.03);
+--lg-shadow-sm:
+  0 6px 18px rgba(0,0,0,0.07),
+  0 2px 6px rgba(0,0,0,0.04),
+  0 0 0 0.5px rgba(0,0,0,0.03),
+  inset 0 1px 0 rgba(255,255,255,0.6);
+--lg-shadow-lg:
+  0 30px 70px rgba(0,0,0,0.14),
+  0 12px 30px rgba(0,0,0,0.08),
+  0 4px 12px rgba(0,0,0,0.05),
+  0 0 0 0.5px rgba(0,0,0,0.04),
+  inset 0 1px 0 rgba(255,255,255,0.5),
+  inset 0 -1px 0 rgba(255,255,255,0.08);
+
+/* Refraction overlay - subtle chromatic edge */
+--lg-refract:inset 0 0 0 1px rgba(255,255,255,0.1);
 }
 [data-theme="dark"]{
 --brand:#8FB67E;--brand-light:rgba(143,182,126,0.12);--accent:#F0A050;--accent-light:rgba(240,160,80,0.08);
@@ -33,19 +69,60 @@
 --shadow:0 2px 16px rgba(0,0,0,0.3),0 0 0 0.5px rgba(255,255,255,0.08);
 --shadow-lg:0 8px 32px rgba(0,0,0,0.4),0 0 0 0.5px rgba(255,255,255,0.1);
 --shadow-sm:0 1px 8px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06);
---glass-bg:rgba(28,28,30,0.5);
---glass-bg-light:rgba(28,28,30,0.35);
---glass-bg-strong:rgba(28,28,30,0.65);
---glass-border:rgba(255,255,255,0.12);
---glass-border-light:rgba(255,255,255,0.08);
---glass-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.1),inset 0 -1px 0 rgba(0,0,0,0.1);
---glass-shadow-sm:0 2px 12px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.08);
---glass-shadow-lg:0 16px 48px rgba(0,0,0,0.5),0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1),inset 0 -1px 0 rgba(0,0,0,0.1);
+
+/* Liquid Glass - Dark Mode */
+--lg-fill:rgba(28,28,30,0.48);
+--lg-fill-light:rgba(28,28,30,0.32);
+--lg-fill-strong:rgba(28,28,30,0.62);
+--lg-fill-thin:rgba(28,28,30,0.22);
+--lg-edge:rgba(255,255,255,0.12);
+--lg-edge-inner:rgba(255,255,255,0.06);
+--lg-edge-dark:rgba(255,255,255,0.08);
+--lg-sheen:linear-gradient(180deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 35%,rgba(255,255,255,0.01) 55%,rgba(255,255,255,0.06) 100%);
+--lg-rim:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 30%,transparent 70%,rgba(255,255,255,0.05) 100%);
+--lg-inner-glow:radial-gradient(ellipse 120% 80% at 50% 0%,rgba(255,255,255,0.06),transparent 60%);
+--lg-shadow:
+  0 20px 50px rgba(0,0,0,0.5),
+  0 8px 20px rgba(0,0,0,0.3),
+  0 2px 6px rgba(0,0,0,0.2),
+  0 0 0 0.5px rgba(255,255,255,0.08),
+  inset 0 1px 0 rgba(255,255,255,0.1),
+  inset 0 -1px 0 rgba(0,0,0,0.15);
+--lg-shadow-sm:
+  0 6px 18px rgba(0,0,0,0.35),
+  0 2px 6px rgba(0,0,0,0.25),
+  0 0 0 0.5px rgba(255,255,255,0.06),
+  inset 0 1px 0 rgba(255,255,255,0.08);
+--lg-shadow-lg:
+  0 30px 70px rgba(0,0,0,0.6),
+  0 12px 30px rgba(0,0,0,0.4),
+  0 4px 12px rgba(0,0,0,0.25),
+  0 0 0 0.5px rgba(255,255,255,0.1),
+  inset 0 1px 0 rgba(255,255,255,0.08),
+  inset 0 -1px 0 rgba(255,255,255,0.03);
+--lg-refract:inset 0 0 0 1px rgba(255,255,255,0.04);
 }
-body{font-family:-apple-system,"PingFang SC",system-ui,sans-serif;background:linear-gradient(135deg,#f5f5f7 0%,#e8e8ed 50%,#d8d8de 100%);color:var(--text);overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+body{font-family:-apple-system,"PingFang SC",system-ui,sans-serif;background:#f5f5f7;color:var(--text);overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:100vh;position:relative;}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+background:
+radial-gradient(ellipse 60% 40% at 15% 10%,rgba(122,158,110,0.12),transparent 60%),
+radial-gradient(ellipse 50% 35% at 85% 15%,rgba(232,145,58,0.08),transparent 55%),
+radial-gradient(ellipse 70% 50% at 50% 100%,rgba(41,151,255,0.06),transparent 50%),
+radial-gradient(ellipse 40% 30% at 90% 80%,rgba(155,89,182,0.06),transparent 50%),
+linear-gradient(180deg,#f5f5f7 0%,#ebebef 50%,#e2e2e7 100%);
+animation:auroraShift 20s ease-in-out infinite alternate;
+}
+@keyframes auroraShift{
+0%{background-position:0% 0%,100% 0%,50% 100%,100% 100%,0% 0%;}
+100%{background-position:10% 5%,90% 10%,50% 95%,85% 85%,0% 0%;}
+}
 .phone{
-width:390px;height:844px;border-radius:40px;overflow:hidden;position:relative;transition:background .35s;
-background:#FFFFFF;
+width:390px;height:844px;border-radius:40px;overflow:hidden;position:relative;transition:background .35s;z-index:1;
+background:
+radial-gradient(ellipse 80% 50% at 20% 5%,rgba(122,158,110,0.08),transparent 60%),
+radial-gradient(ellipse 60% 40% at 85% 20%,rgba(232,145,58,0.05),transparent 55%),
+radial-gradient(ellipse 70% 50% at 50% 100%,rgba(41,151,255,0.04),transparent 50%),
+linear-gradient(180deg,#F8F8FA 0%,#F0F0F3 100%);
 box-shadow:0 30px 80px rgba(0,0,0,0.25),0 8px 24px rgba(0,0,0,0.12),0 0 0 12px rgba(255,255,255,0.5),0 0 0 13px rgba(0,0,0,0.08);
 }
 [data-theme="dark"] .phone{
@@ -72,17 +149,23 @@ linear-gradient(180deg,#1C1C1E,#000000);
 .tabbar-wrap{position:absolute;left:0;right:0;bottom:0;z-index:100;padding:10px 16px calc(12px + var(--safe-bottom));display:flex;align-items:center;gap:10px;background:transparent;pointer-events:none;}
 .tabbar-wrap > *{pointer-events:auto;}
 .tabbar{
-flex:1;height:56px;background:rgba(255,255,255,0.7);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
-border:0.5px solid rgba(0,0,0,0.06);border-radius:28px;display:flex;align-items:center;justify-content:space-around;
-box-shadow:0 8px 28px rgba(0,0,0,0.10),0 2px 6px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.7);position:relative;transition:all .35s;z-index:10;overflow:hidden;
+flex:1;height:56px;background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
+border:0.5px solid var(--lg-edge);border-radius:28px;display:flex;align-items:center;justify-content:space-around;
+box-shadow:var(--lg-shadow-lg);position:relative;transition:all .35s cubic-bezier(.25,.46,.45,.94);z-index:10;overflow:hidden;
 }
-.tabbar::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.03) 45%,rgba(255,255,255,0.08) 55%,rgba(255,255,255,0.12) 100%);pointer-events:none;mix-blend-mode:overlay;}
-[data-theme="dark"] .tabbar::before{background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 45%,rgba(255,255,255,0.04) 55%,rgba(255,255,255,0.06) 100%);}
-.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:#999;font-size:9px;transition:all .2s;width:60px;height:48px;border-radius:20px;position:relative;z-index:1;}
-.tab.active{color:var(--brand);background:rgba(122,158,110,0.1);}
-[data-theme="dark"] .tab.active{background:rgba(143,182,126,0.12);}
-.tab svg{width:24px;height:24px;}
-.tab span{font-weight:500;}
+/* Liquid Glass layers: sheen + rim + inner glow + refraction edge */
+.tabbar::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;border-radius:28px;}
+.tabbar::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:28px;}
+.tabbar .lg-rim{position:absolute;inset:0;background:var(--lg-rim);pointer-events:none;border-radius:28px;opacity:0.7;}
+[data-theme="dark"] .tabbar{background:var(--lg-fill);border-color:var(--lg-edge);}
+[data-theme="dark"] .tabbar::before{background:var(--lg-sheen);}
+[data-theme="dark"] .tabbar::after{background:var(--lg-inner-glow);}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:#999;font-size:9px;transition:all .25s cubic-bezier(.25,.46,.45,.94);width:60px;height:48px;border-radius:20px;position:relative;z-index:1;}
+.tab.active{color:var(--brand);background:rgba(122,158,110,0.1);transform:translateY(-1px);}
+.tab:active{transform:scale(0.94);}
+[data-theme="dark"] .tab.active{background:rgba(143,182,126,0.15);}
+.tab svg{width:24px;height:24px;transition:all .25s;}
+.tab span{font-weight:500;transition:all .25s;}
 .cam-capsule{
 width:56px;height:56px;border-radius:28px;background:linear-gradient(135deg,#7A9E6E,#5A7A4E);
 backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
@@ -95,20 +178,29 @@ cursor:pointer;box-shadow:0 4px 16px rgba(122,158,110,0.35),inset 0 1px 0 rgba(2
 .cam-capsule svg{width:26px;height:26px;position:relative;z-index:1;}
 [data-theme="dark"] .cam-capsule{background:linear-gradient(135deg,#8FB67E,#6B9A5A);box-shadow:0 4px 16px rgba(143,182,126,0.3),inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -1px 0 rgba(0,0,0,0.2);}
 .card{
-background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
-border:0.5px solid var(--glass-border);border-radius:18px;padding:16px;box-shadow:var(--glass-shadow);transition:background .35s;position:relative;overflow:hidden;
+background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
+border:0.5px solid var(--lg-edge);border-radius:18px;padding:16px;box-shadow:var(--lg-shadow);
+transition:all .35s cubic-bezier(.25,.46,.45,.94);position:relative;overflow:hidden;
 }
-.card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 45%,rgba(255,255,255,0.06) 55%,rgba(255,255,255,0.1) 100%);pointer-events:none;mix-blend-mode:overlay;opacity:0.6;}
-[data-theme="dark"] .card{background:var(--glass-bg);border:0.5px solid var(--glass-border);}
-[data-theme="dark"] .card::before{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.01) 45%,rgba(255,255,255,0.03) 55%,rgba(255,255,255,0.05) 100%);}
+.card::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.8;border-radius:18px;}
+.card::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:18px;}
+.card:hover{transform:translateY(-1px);box-shadow:var(--lg-shadow-lg);}
+.card:active{transform:translateY(0) scale(0.995);}
+[data-theme="dark"] .card{background:var(--lg-fill);border-color:var(--lg-edge);}
+[data-theme="dark"] .card::before{background:var(--lg-sheen);}
+[data-theme="dark"] .card::after{background:var(--lg-inner-glow);}
 .card > *{position:relative;z-index:1;}
 .sec-title{font-size:17px;font-weight:700;margin:16px 16px 8px;display:flex;align-items:center;justify-content:space-between;}
 .sec-title .more{font-size:13px;color:var(--text-sub);font-weight:400;cursor:pointer;}
-.btn{padding:10px 20px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;position:relative;overflow:hidden;}
-.btn-p{background:linear-gradient(135deg,#7A9E6E,#5A7A4E);color:#fff;box-shadow:0 2px 8px rgba(122,158,110,0.3),inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -1px 0 rgba(0,0,0,0.1);}
-.btn-p::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15) 0%,transparent 50%);pointer-events:none;}
-.btn-s{background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);color:var(--text);border:0.5px solid var(--glass-border);box-shadow:var(--glass-shadow-sm);}
-.btn-s::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 50%);pointer-events:none;}
+.btn{padding:10px 20px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;position:relative;overflow:hidden;transition:all .25s cubic-bezier(.25,.46,.45,.94);}
+.btn:active{transform:scale(0.96);}
+.btn-p{background:linear-gradient(135deg,#7A9E6E,#5A7A4E);color:#fff;box-shadow:0 4px 14px rgba(122,158,110,0.35),inset 0 1px 0 rgba(255,255,255,0.3),inset 0 -1px 0 rgba(0,0,0,0.1);}
+.btn-p::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.25) 0%,rgba(255,255,255,0.05) 50%,transparent 100%);pointer-events:none;}
+.btn-p:active{box-shadow:0 2px 6px rgba(122,158,110,0.3),inset 0 1px 0 rgba(255,255,255,0.2),inset 0 2px 4px rgba(0,0,0,0.1);}
+.btn-s{background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);color:var(--text);border:0.5px solid var(--lg-edge);box-shadow:var(--lg-shadow-sm);}
+.btn-s::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;border-radius:12px;}
+.btn-s::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:12px;}
+.btn-s:active{box-shadow:var(--lg-shadow-sm),inset 0 2px 6px rgba(0,0,0,0.06);}
 /* Onboarding */
 .onboard{position:absolute;inset:0;z-index:9999;background:linear-gradient(180deg,#F2F2F7,#E5E5EA);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;transition:opacity .4s;}
 [data-theme="dark"] .onboard{background:linear-gradient(180deg,#1C1C1E,#000000);}
@@ -118,7 +210,8 @@ border:0.5px solid var(--glass-border);border-radius:18px;padding:16px;box-shado
 @keyframes bubbleUp{0%{transform:translateY(0);opacity:0}20%{opacity:0.6}80%{opacity:0.4}100%{transform:translateY(-60px);opacity:0}}
 /* Search */
 .search-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;}
-.search-bar input{flex:1;padding:10px 16px;border-radius:14px;border:0.5px solid var(--glass-border);font-size:14px;outline:none;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);color:var(--text);box-shadow:var(--glass-shadow-sm);}
+.search-bar input{flex:1;padding:10px 16px;border-radius:14px;border:0.5px solid var(--lg-edge);font-size:14px;outline:none;background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);color:var(--text);box-shadow:var(--lg-shadow-sm);transition:all .25s;position:relative;}
+.search-bar input:focus{box-shadow:var(--lg-shadow),0 0 0 3px rgba(122,158,110,0.15);border-color:rgba(122,158,110,0.3);}
 .search-chip{font-size:12px;padding:6px 12px;border-radius:14px;background:var(--brand-light);color:var(--brand);cursor:pointer;border:0.5px solid rgba(122,158,110,0.2);display:inline-block;}
 /* Pro badge */
 .pro-badge{font-size:10px;padding:2px 8px;border-radius:8px;background:linear-gradient(135deg,#E8913A,#D4751E);color:#fff;font-weight:700;}
@@ -128,8 +221,22 @@ border:0.5px solid var(--glass-border);border-radius:18px;padding:16px;box-shado
 .cam-hint.good{background:rgba(122,158,110,0.7);}
 @keyframes hintFade{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 /* Multi-food result */
-.multi-food-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);margin-bottom:6px;border:0.5px solid var(--glass-border);box-shadow:var(--glass-shadow-sm);}
-[data-theme="dark"] .multi-food-item{background:var(--glass-bg-light);}
+.multi-food-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);margin-bottom:6px;border:0.5px solid var(--lg-edge);box-shadow:var(--lg-shadow-sm);transition:all .25s;position:relative;overflow:hidden;}
+.multi-food-item::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.6;border-radius:14px;}
+.multi-food-item > *{position:relative;z-index:1;}
+[data-theme="dark"] .multi-food-item{background:var(--lg-fill-light);}
+
+/* Liquid Glass utility classes */
+.lg-surface{background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);border:0.5px solid var(--lg-edge);box-shadow:var(--lg-shadow-sm);position:relative;overflow:hidden;}
+.lg-surface::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.7;}
+.lg-surface::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;}
+.lg-surface > *{position:relative;z-index:1;}
+.lg-strong{background:var(--lg-fill-strong);box-shadow:var(--lg-shadow);}
+.lg-thin{background:var(--lg-fill-thin);backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);box-shadow:none;}
+
+/* Mouse-follow highlight spot for liquid glass interaction */
+.lg-spot{position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0.1) 40%,transparent 70%);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s;mix-blend-mode:overlay;filter:blur(8px);}
+.lg-surface:hover .lg-spot{opacity:1;}
 /* Nutrition detail ring */
 .nutri-ring{width:120px;height:120px;position:relative;margin:0 auto;}
 .nutri-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:8px;}
@@ -2884,6 +2991,122 @@ renderNotif();
 renderNutri();
 renderPro();
 checkOnboard();
+
+// ===== Liquid Glass Dynamic Interaction System =====
+// 鼠标/触摸跟随高光 - 模拟液态玻璃对触摸的动态响应
+(function(){
+  var spotEl=null;
+  var activeCard=null;
+  var rafId=null;
+  var targetX=0,targetY=0,curX=0,curY=0;
+  
+  function createSpot(){
+    if(spotEl)return;
+    spotEl=document.createElement('div');
+    spotEl.style.cssText='position:fixed;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.12) 35%,rgba(255,255,255,0.04) 55%,transparent 70%);pointer-events:none;z-index:9999;opacity:0;transition:opacity .3s ease-out;mix-blend-mode:overlay;filter:blur(6px);will-change:transform,opacity;';
+    document.body.appendChild(spotEl);
+  }
+  
+  function animateSpot(){
+    curX+=(targetX-curX)*0.15;
+    curY+=(targetY-curY)*0.15;
+    if(spotEl&&activeCard){
+      spotEl.style.transform='translate('+(curX-75)+'px,'+(curY-75)+'px)';
+    }
+    rafId=requestAnimationFrame(animateSpot);
+  }
+  animateSpot();
+  
+  function isGlassEl(el){
+    if(!el||el===document.body)return false;
+    var cls=el.className||'';
+    if(typeof cls!=='string')return false;
+    if(cls.indexOf('card')>=0||cls.indexOf('lg-surface')>=0||cls.indexOf('tabbar')>=0||cls.indexOf('multi-food')>=0)return true;
+    var style=el.style||{};
+    if(style.backdropFilter&&style.backdropFilter.indexOf('blur')>=0)return true;
+    if(style.webkitBackdropFilter&&style.webkitBackdropFilter.indexOf('blur')>=0)return true;
+    return false;
+  }
+  
+  function findGlassParent(el){
+    var cur=el;
+    for(var i=0;i<6;i++){
+      if(!cur||cur===document.body)break;
+      if(isGlassEl(cur))return cur;
+      cur=cur.parentElement;
+    }
+    return null;
+  }
+  
+  function onMove(e){
+    var x=e.clientX||(e.touches&&e.touches[0]&&e.touches[0].clientX)||0;
+    var y=e.clientY||(e.touches&&e.touches[0]&&e.touches[0].clientY)||0;
+    targetX=x;targetY=y;
+    
+    var target=e.target;
+    var glassEl=findGlassParent(target);
+    
+    if(glassEl&&glassEl!==activeCard){
+      activeCard=glassEl;
+      createSpot();
+      spotEl.style.opacity='1';
+    }else if(!glassEl&&activeCard){
+      activeCard=null;
+      if(spotEl)spotEl.style.opacity='0';
+    }
+  }
+  
+  function onDown(e){
+    if(activeCard){
+      activeCard.style.transform='scale(0.985)';
+      activeCard.style.transition='transform .1s ease-out';
+    }
+  }
+  
+  function onUp(e){
+    if(activeCard){
+      activeCard.style.transform='';
+      activeCard.style.transition='';
+    }
+  }
+  
+  document.addEventListener('mousemove',onMove,{passive:true});
+  document.addEventListener('touchmove',onMove,{passive:true});
+  document.addEventListener('mousedown',onDown,{passive:true});
+  document.addEventListener('touchstart',onDown,{passive:true});
+  document.addEventListener('mouseup',onUp,{passive:true});
+  document.addEventListener('touchend',onUp,{passive:true});
+  document.addEventListener('mouseleave',function(){
+    activeCard=null;
+    if(spotEl)spotEl.style.opacity='0';
+  });
+})();
+
+// 液态玻璃 - 设备倾斜响应（轻微视差）
+(function(){
+  if(!window.DeviceOrientationEvent)return;
+  var tiltX=0,tiltY=0;
+  var targetTX=0,targetTY=0;
+  
+  window.addEventListener('deviceorientation',function(e){
+    if(e.gamma!==null&&e.beta!==null){
+      targetTX=e.gamma*0.3;
+      targetTY=(e.beta-45)*0.2;
+    }
+  },{passive:true});
+  
+  function animateTilt(){
+    tiltX+=(targetTX-tiltX)*0.05;
+    tiltY+=(targetTY-tiltY)*0.05;
+    var phone=document.querySelector('.phone');
+    if(phone){
+      phone.style.setProperty('--tilt-x',tiltX+'px');
+      phone.style.setProperty('--tilt-y',tiltY+'px');
+    }
+    requestAnimationFrame(animateTilt);
+  }
+  animateTilt();
+})();
 </script>
 </body>
 </html>
