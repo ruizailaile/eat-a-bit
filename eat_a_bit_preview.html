@@ -61,6 +61,30 @@
 
 /* Refraction overlay - subtle chromatic edge */
 --lg-refract:inset 0 0 0 1px rgba(255,255,255,0.1);
+
+/* Liquid Glass - Advanced depth layers */
+--lg-depth-1: 0 1px 0 rgba(255,255,255,0.6) inset, 0 -1px 0 rgba(0,0,0,0.03) inset;
+--lg-depth-2: 0 2px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.02) inset;
+
+/* Chromatic refraction edge - simulates light bending through glass */
+--lg-chroma-top: linear-gradient(180deg, rgba(255,100,100,0.06) 0%, rgba(100,150,255,0.04) 50%, transparent 100%);
+--lg-chroma-left: linear-gradient(90deg, rgba(255,80,80,0.05) 0%, rgba(80,200,255,0.03) 50%, transparent 100%);
+
+/* Glass thickness - for stacked/layered effect */
+--lg-thickness: 
+  0 0 0 1px rgba(255,255,255,0.3),
+  0 0 0 2px rgba(255,255,255,0.1),
+  0 0 0 3px rgba(0,0,0,0.02);
+
+/* Dynamic highlight - follows cursor position */
+--lg-spot-x: 50%;
+--lg-spot-y: 50%;
+--lg-spot-opacity: 0;
+
+/* Animation curves - physics-based */
+--lg-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+--lg-fluid: cubic-bezier(0.4, 0, 0.2, 1);
+--lg-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 [data-theme="dark"]{
 --brand:#8FB67E;--brand-light:rgba(143,182,126,0.12);--accent:#F0A050;--accent-light:rgba(240,160,80,0.08);
@@ -101,6 +125,20 @@
   inset 0 1px 0 rgba(255,255,255,0.08),
   inset 0 -1px 0 rgba(255,255,255,0.03);
 --lg-refract:inset 0 0 0 1px rgba(255,255,255,0.04);
+
+/* Dark mode advanced depth */
+--lg-depth-1: 0 1px 0 rgba(255,255,255,0.08) inset, 0 -1px 0 rgba(0,0,0,0.15) inset;
+--lg-depth-2: 0 2px 0 rgba(255,255,255,0.05) inset, 0 -2px 0 rgba(0,0,0,0.1) inset;
+
+/* Dark mode chromatic refraction */
+--lg-chroma-top: linear-gradient(180deg, rgba(255,100,100,0.04) 0%, rgba(100,150,255,0.03) 50%, transparent 100%);
+--lg-chroma-left: linear-gradient(90deg, rgba(255,80,80,0.03) 0%, rgba(80,200,255,0.02) 50%, transparent 100%);
+
+/* Dark mode glass thickness */
+--lg-thickness: 
+  0 0 0 1px rgba(255,255,255,0.08),
+  0 0 0 2px rgba(255,255,255,0.04),
+  0 0 0 3px rgba(0,0,0,0.1);
 }
 body{font-family:-apple-system,"PingFang SC",system-ui,sans-serif;background:#f5f5f7;color:var(--text);overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:100vh;position:relative;}
 body::before{content:'';position:fixed;inset:0;z-index:0;
@@ -227,16 +265,67 @@ transition:all .35s cubic-bezier(.25,.46,.45,.94);position:relative;overflow:hid
 [data-theme="dark"] .multi-food-item{background:var(--lg-fill-light);}
 
 /* Liquid Glass utility classes */
-.lg-surface{background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);border:0.5px solid var(--lg-edge);box-shadow:var(--lg-shadow-sm);position:relative;overflow:hidden;}
-.lg-surface::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.7;}
+.lg-surface{background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);border:0.5px solid var(--lg-edge);box-shadow:var(--lg-shadow-sm);position:relative;overflow:hidden;transition:all .35s var(--lg-fluid);}
+.lg-surface::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.7;transition:opacity .3s;}
 .lg-surface::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;}
 .lg-surface > *{position:relative;z-index:1;}
+.lg-surface:hover{box-shadow:var(--lg-shadow);transform:translateY(-0.5px);}
+.lg-surface:active{transform:scale(0.99);transition:transform .1s ease-out;}
 .lg-strong{background:var(--lg-fill-strong);box-shadow:var(--lg-shadow);}
 .lg-thin{background:var(--lg-fill-thin);backdrop-filter:var(--lg-blur-soft);-webkit-backdrop-filter:var(--lg-blur-soft);box-shadow:none;}
+
+/* Liquid Glass - List Group (settings style) */
+.lg-list{background:var(--lg-fill);backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);border:0.5px solid var(--lg-edge);border-radius:18px;box-shadow:var(--lg-shadow-sm);overflow:hidden;position:relative;}
+.lg-list::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.5;border-radius:18px;}
+.lg-list::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:18px;opacity:0.6;}
+.lg-list > *{position:relative;z-index:1;}
+.lg-list-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:0.5px solid var(--lg-edge-dark);cursor:pointer;font-size:15px;transition:background .2s;position:relative;}
+.lg-list-row:last-child{border-bottom:none;}
+.lg-list-row:hover{background:rgba(255,255,255,0.15);}
+.lg-list-row:active{background:rgba(122,158,110,0.1);}
+[data-theme="dark"] .lg-list-row:hover{background:rgba(255,255,255,0.06);}
+[data-theme="dark"] .lg-list-row:active{background:rgba(143,182,126,0.12);}
+
+/* Liquid Glass - Modal / Sheet */
+.lg-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(8px) saturate(160%);-webkit-backdrop-filter:blur(8px) saturate(160%);z-index:500;display:flex;align-items:center;justify-content:center;}
+.lg-modal{background:var(--lg-fill-strong);backdrop-filter:var(--lg-blur-strong);-webkit-backdrop-filter:var(--lg-blur-strong);border:0.5px solid var(--lg-edge);border-radius:24px;padding:24px;width:300px;max-height:70%;overflow-y:auto;text-align:center;box-shadow:var(--lg-shadow-lg);position:relative;overflow:hidden;animation:lgModalIn .35s var(--lg-spring);}
+@keyframes lgModalIn{from{opacity:0;transform:scale(0.9) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.lg-modal::before{content:'';position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.6;border-radius:24px;}
+.lg-modal::after{content:'';position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:24px;}
+.lg-modal > *{position:relative;z-index:1;}
+
+/* Liquid Glass - Press effect (glass deformation) */
+.lg-press:active{transform:scale(0.97);transition:transform .1s ease-out;}
+.lg-press:active::before{opacity:0.9;}
+.lg-press{transition:transform .25s var(--lg-spring);}
+
+/* Liquid Glass - Edge refraction glow */
+.lg-edge-glow{box-shadow:
+  var(--lg-shadow),
+  0 0 20px rgba(255,255,255,0.1),
+  inset 0 0 30px rgba(255,255,255,0.05);}
 
 /* Mouse-follow highlight spot for liquid glass interaction */
 .lg-spot{position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0.1) 40%,transparent 70%);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s;mix-blend-mode:overlay;filter:blur(8px);}
 .lg-surface:hover .lg-spot{opacity:1;}
+
+/* Liquid Glass - Floating animation (subtle levitation) */
+@keyframes lgFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-2px);}
+}
+.lg-float{animation:lgFloat 6s ease-in-out infinite;}
+
+/* Liquid Glass - Shimmer effect (light sweep) */
+@keyframes lgShimmer{
+  0%{background-position:-200% 0;}
+  100%{background-position:200% 0;}
+}
+.lg-shimmer::before{
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 50%,transparent 100%);
+  background-size:200% 100%;
+  animation:lgShimmer 3s ease-in-out infinite;
+}
 /* Nutrition detail ring */
 .nutri-ring{width:120px;height:120px;position:relative;margin:0 auto;}
 .nutri-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:8px;}
@@ -575,17 +664,32 @@ np.scrollTop=0;
 
 // Toast
 var tt;
-function toast(m){var t=document.createElement('div');t.style.cssText='position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.55);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);color:#fff;padding:10px 22px;border-radius:22px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;border:0.5px solid rgba(255,255,255,0.15);';t.textContent=m;document.getElementById('app').appendChild(t);requestAnimationFrame(function(){t.style.opacity='1';});clearTimeout(tt);tt=setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove();},300);},1800);}
+function toast(m){var t=document.createElement('div');t.style.cssText='position:absolute;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);background:rgba(0,0,0,0.55);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);color:#fff;padding:10px 22px;border-radius:22px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:all .35s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;border:0.5px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.1) inset;overflow:hidden;';var sheen=document.createElement('div');sheen.style.cssText='position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.2) 0%,rgba(255,255,255,0.05) 50%,transparent 100%);pointer-events:none;border-radius:22px;';t.appendChild(sheen);var txt=document.createElement('span');txt.style.cssText='position:relative;z-index:1;';txt.textContent=m;t.appendChild(txt);document.getElementById('app').appendChild(t);requestAnimationFrame(function(){t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';});clearTimeout(tt);tt=setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(-50%) translateY(-6px)';setTimeout(function(){t.remove();},300);},1800);}
 
-// Modal
+// Modal - Liquid Glass style
 var _modalId=0;
 function genModalId(){return 'modal_'+(++_modalId);}
 function modal(html,mid){
 mid=mid||genModalId();
-var o=document.createElement('div');o.id=mid;o.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:500;display:flex;align-items:center;justify-content:center;border-radius:40px;';
-var c=document.createElement('div');c.style.cssText='background:rgba(255,255,255,0.7);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);border:0.5px solid rgba(255,255,255,0.6);border-radius:20px;padding:24px;width:300px;max-height:70%;overflow-y:auto;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.12);';
-c.innerHTML=html;o.appendChild(c);document.getElementById('app').appendChild(o);
-o.onclick=function(e){if(e.target===o){o.remove();}};
+var o=document.createElement('div');o.id=mid;o.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,0.25);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);z-index:500;display:flex;align-items:center;justify-content:center;border-radius:40px;';
+var c=document.createElement('div');
+c.style.cssText='background:var(--lg-fill-strong);backdrop-filter:var(--lg-blur-strong);-webkit-backdrop-filter:var(--lg-blur-strong);border:0.5px solid var(--lg-edge);border-radius:24px;padding:24px;width:300px;max-height:70%;overflow-y:auto;text-align:center;box-shadow:var(--lg-shadow-lg);position:relative;overflow:hidden;animation:lgModalIn .35s cubic-bezier(0.34,1.56,0.64,1);';
+// Add liquid glass layers (prepended so content stays on top)
+var sheen=document.createElement('div');
+sheen.style.cssText='position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.6;border-radius:24px;z-index:0;';
+var innerGlow=document.createElement('div');
+innerGlow.style.cssText='position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:24px;z-index:0;';
+var rimLight=document.createElement('div');
+rimLight.style.cssText='position:absolute;inset:0;background:var(--lg-rim);pointer-events:none;border-radius:24px;opacity:0.5;z-index:0;';
+c.innerHTML=html;
+// Prepend glass layers so content elements are on top
+c.insertBefore(rimLight,c.firstChild);
+c.insertBefore(innerGlow,c.firstChild);
+c.insertBefore(sheen,c.firstChild);
+// Ensure content is above glass layers
+Array.from(c.children).forEach(function(ch){if(ch!==sheen&&ch!==innerGlow&&ch!==rimLight){ch.style.position='relative';ch.style.zIndex='1';}});
+o.appendChild(c);document.getElementById('app').appendChild(o);
+o.onclick=function(e){if(e.target===o){o.style.opacity='0';o.style.transform='scale(0.95)';o.style.transition='all .2s ease-out';setTimeout(function(){o.remove();},200);}};
 return{o:o,c:c,id:mid};
 }
 function closeModal(id){
@@ -2992,6 +3096,143 @@ renderNutri();
 renderPro();
 checkOnboard();
 
+// ===== Liquid Glass Auto-Enhancement System =====
+// 自动扫描并增强所有玻璃表面 - 添加高光层、内发光、边缘光、交互动效
+(function(){
+  var enhanced=new WeakSet();
+  
+  function enhanceElement(el){
+    if(!el||enhanced.has(el))return;
+    enhanced.add(el);
+    
+    // Skip if already has glass layers
+    if(el.querySelector('.lg-sheen-layer'))return;
+    
+    // Get border radius from computed style or element style
+    var style=getComputedStyle(el);
+    var borderRadius=style.borderRadius||'18px';
+    
+    // Create sheen layer (top surface highlight)
+    var sheen=document.createElement('div');
+    sheen.className='lg-sheen-layer';
+    sheen.style.cssText='position:absolute;inset:0;background:var(--lg-sheen);pointer-events:none;mix-blend-mode:overlay;opacity:0.55;border-radius:'+borderRadius+';z-index:0;';
+    
+    // Create inner glow layer
+    var innerGlow=document.createElement('div');
+    innerGlow.className='lg-inner-glow-layer';
+    innerGlow.style.cssText='position:absolute;inset:0;background:var(--lg-inner-glow);pointer-events:none;border-radius:'+borderRadius+';z-index:0;';
+    
+    // Create rim light layer
+    var rimLight=document.createElement('div');
+    rimLight.className='lg-rim-layer';
+    rimLight.style.cssText='position:absolute;inset:0;background:var(--lg-rim);pointer-events:none;border-radius:'+borderRadius+';opacity:0.4;z-index:0;';
+    
+    // Insert glass layers at the beginning (so content stays on top)
+    el.style.position=el.style.position||'relative';
+    if(el.firstChild){
+      el.insertBefore(rimLight,el.firstChild);
+      el.insertBefore(innerGlow,el.firstChild);
+      el.insertBefore(sheen,el.firstChild);
+    }else{
+      el.appendChild(sheen);
+      el.appendChild(innerGlow);
+      el.appendChild(rimLight);
+    }
+    
+    // Ensure all direct children have position relative and z-index 1
+    Array.from(el.children).forEach(function(ch){
+      if(ch.classList&&(ch.classList.contains('lg-sheen-layer')||ch.classList.contains('lg-inner-glow-layer')||ch.classList.contains('lg-rim-layer')))return;
+      var cs=getComputedStyle(ch);
+      if(cs.position==='static'){
+        ch.style.position='relative';
+        ch.style.zIndex='1';
+      }
+    });
+    
+    // Add press interaction for clickable elements
+    if(el.onclick||el.getAttribute('onclick')||el.classList.contains('card')||el.classList.contains('btn-s')){
+      el.addEventListener('touchstart',function(){
+        el.style.transform='scale(0.98)';
+        el.style.transition='transform .1s ease-out';
+      },{passive:true});
+      el.addEventListener('touchend',function(){
+        el.style.transform='';
+        el.style.transition='transform .25s cubic-bezier(0.34,1.56,0.64,1)';
+      },{passive:true});
+      el.addEventListener('mousedown',function(){
+        el.style.transform='scale(0.98)';
+        el.style.transition='transform .1s ease-out';
+      });
+      el.addEventListener('mouseup',function(){
+        el.style.transform='';
+        el.style.transition='transform .25s cubic-bezier(0.34,1.56,0.64,1)';
+      });
+      el.addEventListener('mouseleave',function(){
+        el.style.transform='';
+        el.style.transition='transform .25s cubic-bezier(0.34,1.56,0.64,1)';
+      });
+    }
+  }
+  
+  function enhanceAll(){
+    var phone=document.getElementById('app');
+    if(!phone)return;
+    
+    // Find all glass-like elements
+    var selectors=[
+      '.card',
+      '.tabbar',
+      '.multi-food-item',
+      '.lg-surface',
+      '.search-bar input',
+      '.btn-s'
+    ];
+    
+    selectors.forEach(function(sel){
+      phone.querySelectorAll(sel).forEach(enhanceElement);
+    });
+    
+    // Find elements with backdrop-filter inline styles
+    var all=phone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var el=all[i];
+      var bf=el.style.backdropFilter||el.style.webkitBackdropFilter;
+      if(bf&&bf.indexOf('blur')>=0){
+        // Only enhance if it looks like a glass surface (has border radius)
+        var br=el.style.borderRadius;
+        if(br&&br!=='0px'&&br!=='0'){
+          enhanceElement(el);
+        }
+      }
+    }
+  }
+  
+  // Run after a short delay to ensure DOM is ready
+  setTimeout(enhanceAll,500);
+  
+  // Re-enhance when pages change (observe DOM mutations)
+  var observer=new MutationObserver(function(mutations){
+    var shouldEnhance=false;
+    mutations.forEach(function(m){
+      if(m.addedNodes&&m.addedNodes.length>0)shouldEnhance=true;
+    });
+    if(shouldEnhance){
+      clearTimeout(window._lgEnhanceTimer);
+      window._lgEnhanceTimer=setTimeout(enhanceAll,100);
+    }
+  });
+  
+  document.addEventListener('DOMContentLoaded',function(){
+    var app=document.getElementById('app');
+    if(app){
+      observer.observe(app,{childList:true,subtree:true});
+    }
+  });
+  
+  // Also expose for manual calls
+  window.enhanceLiquidGlass=enhanceAll;
+})();
+
 // ===== Liquid Glass Dynamic Interaction System =====
 // 鼠标/触摸跟随高光 - 模拟液态玻璃对触摸的动态响应
 (function(){
@@ -2999,19 +3240,56 @@ checkOnboard();
   var activeCard=null;
   var rafId=null;
   var targetX=0,targetY=0,curX=0,curY=0;
+  var prevX=0,prevY=0;
+  var velX=0,velY=0;
+  var trailSpots=[];
   
   function createSpot(){
     if(spotEl)return;
+    // Main highlight spot
     spotEl=document.createElement('div');
-    spotEl.style.cssText='position:fixed;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.35) 0%,rgba(255,255,255,0.12) 35%,rgba(255,255,255,0.04) 55%,transparent 70%);pointer-events:none;z-index:9999;opacity:0;transition:opacity .3s ease-out;mix-blend-mode:overlay;filter:blur(6px);will-change:transform,opacity;';
+    spotEl.style.cssText='position:fixed;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0.15) 35%,rgba(255,255,255,0.05) 55%,transparent 70%);pointer-events:none;z-index:9999;opacity:0;transition:opacity .3s ease-out;mix-blend-mode:overlay;filter:blur(8px);will-change:transform,opacity;';
     document.body.appendChild(spotEl);
+    
+    // Create trailing spots for liquid flow effect
+    for(var i=0;i<3;i++){
+      var ts=document.createElement('div');
+      var size=120-i*25;
+      var op=0.25-i*0.07;
+      ts.style.cssText='position:fixed;width:'+size+'px;height:'+size+'px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,'+op+') 0%,transparent 60%);pointer-events:none;z-index:9998;opacity:0;transition:opacity .4s ease-out;mix-blend-mode:overlay;filter:blur('+(10+i*3)+'px);will-change:transform;';
+      document.body.appendChild(ts);
+      trailSpots.push({el:ts,x:0,y:0,delay:0.08+i*0.06,size:size});
+    }
   }
   
   function animateSpot(){
-    curX+=(targetX-curX)*0.15;
-    curY+=(targetY-curY)*0.15;
+    // Calculate velocity
+    velX=(targetX-curX)*0.2;
+    velY=(targetY-curY)*0.2;
+    
+    // Smooth follow
+    curX+=(targetX-curX)*0.18;
+    curY+=(targetY-curY)*0.18;
+    
     if(spotEl&&activeCard){
-      spotEl.style.transform='translate('+(curX-75)+'px,'+(curY-75)+'px)';
+      // Calculate stretch based on velocity
+      var speed=Math.sqrt(velX*velX+velY*velY);
+      var stretch=Math.min(speed*0.015,0.25);
+      var angle=Math.atan2(velY,velX)*(180/Math.PI);
+      
+      // Apply transform with subtle liquid distortion
+      var scaleX=1+stretch;
+      var scaleY=1-stretch*0.6;
+      spotEl.style.transform='translate('+(curX-80)+'px,'+(curY-80)+'px) rotate('+angle+'deg) scale('+scaleX+','+scaleY+')';
+      
+      // Update trailing spots
+      for(var i=0;i<trailSpots.length;i++){
+        var ts=trailSpots[i];
+        ts.x+=(curX-ts.x)*ts.delay;
+        ts.y+=(curY-ts.y)*ts.delay;
+        ts.el.style.transform='translate('+(ts.x-ts.size/2)+'px,'+(ts.y-ts.size/2)+'px)';
+        ts.el.style.opacity=speed>2?'1':'0.6';
+      }
     }
     rafId=requestAnimationFrame(animateSpot);
   }
@@ -3050,9 +3328,17 @@ checkOnboard();
       activeCard=glassEl;
       createSpot();
       spotEl.style.opacity='1';
+      // Show trail spots
+      for(var i=0;i<trailSpots.length;i++){
+        trailSpots[i].el.style.opacity='1';
+      }
     }else if(!glassEl&&activeCard){
       activeCard=null;
       if(spotEl)spotEl.style.opacity='0';
+      // Hide trail spots
+      for(var i=0;i<trailSpots.length;i++){
+        trailSpots[i].el.style.opacity='0';
+      }
     }
   }
   
@@ -3060,13 +3346,22 @@ checkOnboard();
     if(activeCard){
       activeCard.style.transform='scale(0.985)';
       activeCard.style.transition='transform .1s ease-out';
+      // Intensify spot on press
+      if(spotEl){
+        spotEl.style.filter='blur(12px)';
+        spotEl.style.transform=spotEl.style.transform.replace(/scale\([^)]+\)/,'scale(1.2,0.9)');
+      }
     }
   }
   
   function onUp(e){
     if(activeCard){
       activeCard.style.transform='';
-      activeCard.style.transition='';
+      activeCard.style.transition='transform .25s cubic-bezier(0.34,1.56,0.64,1)';
+      // Restore spot
+      if(spotEl){
+        spotEl.style.filter='blur(8px)';
+      }
     }
   }
   
@@ -3079,6 +3374,9 @@ checkOnboard();
   document.addEventListener('mouseleave',function(){
     activeCard=null;
     if(spotEl)spotEl.style.opacity='0';
+    for(var i=0;i<trailSpots.length;i++){
+      trailSpots[i].el.style.opacity='0';
+    }
   });
 })();
 
