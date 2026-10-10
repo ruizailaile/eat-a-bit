@@ -171,6 +171,26 @@ radial-gradient(ellipse 70% 60% at 50% 100%,rgba(41,151,255,0.04),transparent 50
 linear-gradient(180deg,#1C1C1E,#000000);
 }
 @media(max-width:420px){body{background:#000;}.phone{width:100%;height:100vh;border-radius:0;box-shadow:none;}}
+
+/* === Global Touch Feedback & Performance === */
+/* GPU acceleration for animated elements */
+.page,.tabbar-wrap,.card,[class*="lg-"],[style*="backdrop-filter"]{transform:translateZ(0);backface-visibility:hidden;}
+/* Universal tap feedback - scale down on active */
+button:active,a:active,[onclick]:active,.tab:active,.card:active{transform:scale(0.97)!important;transition:transform .12s cubic-bezier(0.4,0,0.2,1)!important;}
+/* Smooth tap highlight removal */
+*{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;}
+/* Prevent text selection on UI elements */
+button,a,[onclick],.tab,.nav-item{user-select:none;-webkit-user-select:none;}
+/* Smooth scrolling on all scrollable elements */
+.page,[style*="overflow"]{scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+/* Reduce motion for accessibility */
+@media(prefers-reduced-motion:reduce){
+*{animation-duration:0.01ms!important;transition-duration:0.01ms!important;}
+.page.active{animation:none;}
+}
+/* Loading shimmer effect */
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+.shimmer{background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
 .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600;color:var(--text);flex-shrink:0;position:relative;z-index:10;}
 .statusbar .t{font-variant-numeric:tabular-nums;}
 .statusbar .r{display:flex;gap:5px;align-items:center;}
@@ -181,9 +201,13 @@ linear-gradient(180deg,#1C1C1E,#000000);
 .statusbar .batt::after{content:'';position:absolute;right:-3px;top:3px;width:2px;height:6px;background:var(--text);border-radius:0 1px 1px 0;}
 .statusbar .batt i{display:block;height:8px;width:16px;background:var(--text);border-radius:1px;margin:1px;}
 .content{height:calc(100% - 44px - 76px);position:relative;}
-.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:90px;}
-.page.active{display:block;}
+.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:90px;will-change:transform,opacity;transform:translateZ(0);}
+.page.active{display:block;animation:pageIn .4s cubic-bezier(0.4,0,0.2,1);}
+.page.exit{animation:pageOut .3s cubic-bezier(0.4,0,0.2,1) forwards;}
+@keyframes pageIn{from{opacity:0;transform:translateY(12px) scale(0.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes pageOut{from{opacity:1;transform:translateY(0) scale(1);}to{opacity:0;transform:translateY(-8px) scale(0.99);}}
 .page::-webkit-scrollbar{width:0;}
+.page{scroll-behavior:smooth;}
 .tabbar-wrap{position:absolute;left:0;right:0;bottom:0;z-index:100;padding:10px 16px calc(12px + var(--safe-bottom));display:flex;align-items:center;gap:10px;background:transparent;pointer-events:none;}
 .tabbar-wrap > *{pointer-events:auto;}
 .tabbar{
@@ -411,6 +435,42 @@ transition:all .35s cubic-bezier(.25,.46,.45,.94);position:relative;overflow:hid
 </div>
 
 <script>
+// === Performance Utilities ===
+var _rafQueue=[];
+var _debounceTimers={};
+// Debounce - delays function execution until after wait ms
+function debounce(key,fn,wait){
+  wait=wait||150;
+  clearTimeout(_debounceTimers[key]);
+  _debounceTimers[key]=setTimeout(fn,wait);
+}
+// Throttle - ensures function runs at most once per wait ms
+function throttle(key,fn,wait){
+  wait=wait||100;
+  if(_debounceTimers[key])return;
+  _debounceTimers[key]=true;
+  fn();
+  setTimeout(function(){_debounceTimers[key]=false;},wait);
+}
+// Batch DOM writes - collect and flush in single rAF
+function batchDOM(fn){
+  _rafQueue.push(fn);
+  if(_rafQueue.length===1){
+    requestAnimationFrame(function(){
+      var queue=_rafQueue.slice();
+      _rafQueue=[];
+      queue.forEach(function(f){try{f();}catch(e){}});
+    });
+  }
+}
+// Lazy render - only render when page is visible
+var _renderedPages={};
+function lazyRender(name,fn){
+  if(_renderedPages[name]&&_renderedPages[name]===cur)return;
+  _renderedPages[name]=name;
+  fn();
+}
+
 var SK='eatabit_v3';
 var FOODS=[
 {n:'抹茶蛋糕',k:400,e:'🍰',w:'110g',p:6,f:18,c:52,cat:'甜点'},
@@ -635,31 +695,44 @@ if(name===cur)return;
 var op=document.getElementById('pg-'+cur);
 var np=document.getElementById('pg-'+name);
 if(!np)return;
-if(cur==='record')stopCamHints();
-op.classList.remove('active');
+// Close camera when leaving record page
+if(cur==='record'){
+  stopCamHints();
+  closeCamera();
+}
+// Exit animation on old page
+if(op){
+  op.classList.add('exit');
+  op.classList.remove('active');
+  setTimeout(function(){op.classList.remove('exit');},300);
+}
+// Enter animation on new page
 np.classList.add('active');
 cur=name;
 renderTab();
-if(name==='home')renderHome();
-if(name==='stats')renderStats();
-if(name==='water')renderWater();
-if(name==='stickers')renderStickers();
-if(name==='ach')renderAch();
-if(name==='share')renderShare();
-if(name==='doodle')renderDoodle();
-if(name==='plog')renderPlog();
-if(name==='record')renderRecord();
-if(name==='profile')renderProfile();
-if(name==='about')renderAbout();
-if(name==='search')renderSearch();
-if(name==='notif')renderNotif();
-if(name==='nutri')renderNutri();
-if(name==='pro')renderPro();
-if(name==='language')renderLanguage();
-if(name==='perms')renderPerms();
-if(name==='data')renderData();
-if(name==='airec')renderAIRec();
-np.scrollTop=0;
+// Debounced rendering - use requestAnimationFrame to avoid layout thrash
+requestAnimationFrame(function(){
+  if(name==='home')renderHome();
+  if(name==='stats')renderStats();
+  if(name==='water')renderWater();
+  if(name==='stickers')renderStickers();
+  if(name==='ach')renderAch();
+  if(name==='share')renderShare();
+  if(name==='doodle')renderDoodle();
+  if(name==='plog')renderPlog();
+  if(name==='record'){renderRecord();initCamera();}
+  if(name==='profile')renderProfile();
+  if(name==='about')renderAbout();
+  if(name==='search')renderSearch();
+  if(name==='notif')renderNotif();
+  if(name==='nutri')renderNutri();
+  if(name==='pro')renderPro();
+  if(name==='language')renderLanguage();
+  if(name==='perms')renderPerms();
+  if(name==='data')renderData();
+  if(name==='airec')renderAIRec();
+  np.scrollTop=0;
+});
 }
 
 // Toast
@@ -1137,39 +1210,61 @@ document.getElementById('pg-record').innerHTML=
 '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;">'+
 '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;font-weight:700;">AI识别热量</span><span style="font-size:11px;padding:3px 8px;border-radius:10px;background:rgba(122,158,110,0.12);color:var(--brand);font-weight:600;">AI</span></div>'+
 '<div style="display:flex;gap:8px;">'+
-'<div onclick="toast(\'闪光灯已开启\')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">⚡</div>'+
-'<div onclick="toast(\'网格已切换\')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;grid-on:1;">⊞</div>'+
+'<div onclick="toggleFlash()" id="flashBtn" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">⚡</div>'+
+'<div onclick="toggleGrid()" id="gridBtn" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">⊞</div>'+
+'<div onclick="sw(\'home\')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;">'+
+'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></div>'+
 '</div></div>'+
 
 // Camera viewfinder area
-'<div id="recArea" style="margin:4px 16px 12px;background:rgba(255,255,255,0.3);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:0.5px solid rgba(255,255,255,0.5);border-radius:18px;padding:20px;min-height:200px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">'+
+'<div id="recArea" style="margin:4px 16px 12px;background:rgba(0,0,0,0.05);border:0.5px solid rgba(255,255,255,0.5);border-radius:18px;min-height:280px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">'+
+// Video element for real camera
+'<video id="camVideo" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;border-radius:18px;"></video>'+
 // Grid overlay
-'<div style="position:absolute;inset:0;pointer-events:none;opacity:0.15;">'+
-'<div style="position:absolute;top:33%;left:0;right:0;height:1px;background:var(--text);"></div>'+
-'<div style="position:absolute;top:66%;left:0;right:0;height:1px;background:var(--text);"></div>'+
-'<div style="position:absolute;left:33%;top:0;bottom:0;width:1px;background:var(--text);"></div>'+
-'<div style="position:absolute;left:66%;top:0;bottom:0;width:1px;background:var(--text);"></div></div>'+
-// Dot pattern
-'<div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(0,0,0,0.04) 1px,transparent 1px);background-size:12px 12px;opacity:0.5;"></div>'+
-// Placeholder
-'<div id="recPh" style="text-align:center;z-index:1;"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--text-faint)" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg><div style="font-size:14px;color:var(--text-faint);margin-top:8px;">点击拍摄识别食物</div>'+
-'<div style="font-size:11px;color:var(--text-faint);margin-top:4px;">AI将自动识别食物名称和热量</div></div>'+
+'<div style="position:absolute;inset:0;pointer-events:none;opacity:0.2;z-index:2;">'+
+'<div style="position:absolute;top:33%;left:0;right:0;height:1px;background:#fff;"></div>'+
+'<div style="position:absolute;top:66%;left:0;right:0;height:1px;background:#fff;"></div>'+
+'<div style="position:absolute;left:33%;top:0;bottom:0;width:1px;background:#fff;"></div>'+
+'<div style="position:absolute;left:66%;top:0;bottom:0;width:1px;background:#fff;"></div></div>'+
+// Corner brackets
+'<div style="position:absolute;inset:12px;pointer-events:none;z-index:2;">'+
+'<div style="position:absolute;top:0;left:0;width:20px;height:20px;border-top:2px solid #fff;border-left:2px solid #fff;border-radius:4px 0 0 0;opacity:0.7;"></div>'+
+'<div style="position:absolute;top:0;right:0;width:20px;height:20px;border-top:2px solid #fff;border-right:2px solid #fff;border-radius:0 4px 0 0;opacity:0.7;"></div>'+
+'<div style="position:absolute;bottom:0;left:0;width:20px;height:20px;border-bottom:2px solid #fff;border-left:2px solid #fff;border-radius:0 0 0 4px;opacity:0.7;"></div>'+
+'<div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-bottom:2px solid #fff;border-right:2px solid #fff;border-radius:0 0 4px 0;opacity:0.7;"></div></div>'+
+// Placeholder (shown when camera not active) - clickable to trigger camera
+'<div id="recPh" style="text-align:center;z-index:5;cursor:pointer;" onclick="doCap()">'+
+'<div style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:transform .2s;" ontouchstart="this.style.transform=\'scale(0.95)\'" ontouchend="this.style.transform=\'scale(1)\'">'+
+'<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--brand)" stroke-width="1.8"><rect x="2" y="5" width="20" height="16" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M8 5l1.5-2h5L16 5"/></svg></div>'+
+'<div style="font-size:15px;font-weight:600;color:var(--text);">点击拍照或下方快门</div>'+
+'<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">拍照或从相册选择，AI 自动识别</div></div>'+
+// Camera loading overlay
+'<div id="camLoading" style="display:none;position:absolute;inset:0;z-index:6;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);border-radius:18px;">'+
+'<div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:camSpin 0.8s linear infinite;"></div>'+
+'<div style="font-size:13px;color:#fff;margin-top:12px;font-weight:500;">正在打开相机...</div></div>'+
 // Camera smart hint
-'<div id="camHint" class="cam-hint good" style="display:none;"></div>'+
-'<img id="recImg" style="width:150px;height:150px;border-radius:18px;display:none;z-index:1;box-shadow:0 4px 16px rgba(0,0,0,.15);">'+
-'<div id="recK" style="display:none;font-size:28px;font-weight:800;color:var(--accent);font-style:italic;z-index:1;"></div></div>'+
+'<div id="camHint" class="cam-hint good" style="display:none;z-index:3;"></div>'+
+'<img id="recImg" style="max-width:100%;max-height:100%;display:none;z-index:1;position:absolute;inset:0;object-fit:cover;border-radius:18px;">'+
+'<div id="recK" style="display:none;font-size:28px;font-weight:800;color:var(--accent);font-style:italic;z-index:1;"></div>'+
+// Camera permission error overlay
+'<div id="camError" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:10;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;border-radius:18px;">'+
+'<div style="font-size:36px;margin-bottom:10px;">📷</div>'+
+'<div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:4px;">无法访问相机</div>'+
+'<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:12px;" id="camErrorMsg">请允许相机权限</div>'+
+'<div onclick="tryOpenCam()" style="padding:8px 20px;border-radius:16px;background:var(--brand);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">重试</div>'+
+'<div onclick="openAlbum()" style="margin-top:8px;padding:8px 20px;border-radius:16px;background:rgba(255,255,255,0.2);color:#fff;font-size:13px;font-weight:500;cursor:pointer;backdrop-filter:blur(10px);">从相册选择</div></div></div>'+
 
-// Camera controls: album | shutter | live
+// Camera controls: album | shutter | flip
 '<div style="display:flex;justify-content:center;gap:24px;align-items:center;margin:8px 0 12px;">'+
 // Album
-'<div onclick="toast(\'打开相册\')" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">'+
+'<div onclick="openAlbum()" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">'+
 '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>'+
 // Shutter
-'<div id="capBtn" onclick="doCap()" style="width:68px;height:68px;border-radius:50%;border:4px solid rgba(255,255,255,0.6);cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:transform .15s;">'+
-'<div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-dark));box-shadow:0 2px 8px rgba(122,158,110,0.3);"></div></div>'+
-// Live photo toggle
-'<div onclick="toast(\'实况模式已开启\')" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">'+
-'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></div>'+
+'<div id="capBtn" onclick="doCap()" style="width:68px;height:68px;border-radius:50%;border:4px solid rgba(255,255,255,0.8);cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.3);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:transform .15s;box-shadow:0 4px 16px rgba(0,0,0,0.15);">'+
+'<div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-dark));box-shadow:0 2px 8px rgba(122,158,110,0.4);"></div></div>'+
+// Flip camera
+'<div onclick="flipCamera()" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.55);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:0.5px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;">'+
+'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg></div>'+
 '</div>'+
 
 // AI confidence indicator
@@ -1199,7 +1294,7 @@ document.getElementById('pg-record').innerHTML=
 '<div style="text-align:center;margin:0 16px 12px;"><div onclick="manualE()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:20px;background:var(--card);border:1.5px solid var(--border);font-size:14px;color:var(--text-sub);cursor:pointer;font-weight:500;">✏️ 手动录入食物</div></div>'+
 
 '<div id="recSheet" style="display:none;"></div>';
-if(!document.getElementById('aiPulseS')){var s=document.createElement('style');s.id='aiPulseS';s.textContent='@keyframes aiPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}';document.head.appendChild(s);}
+if(!document.getElementById('aiPulseS')){var s=document.createElement('style');s.id='aiPulseS';s.textContent='@keyframes aiPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}@keyframes camSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}';document.head.appendChild(s);}
 // Start camera hints
 startCamHints();
 }
@@ -1231,43 +1326,346 @@ camHintTimer=setInterval(showHint,3000);
 }
 function stopCamHints(){clearInterval(camHintTimer);var he=document.getElementById('camHint');if(he)he.style.display='none';}
 
+// ===== Camera System =====
+var camStream=null;
+var camFacing='environment'; // 'environment' (back) or 'user' (front)
+var flashOn=false;
+var gridOn=true;
+
+// Try to open camera when record page opens
+function initCamera(){
+  var video=document.getElementById('camVideo');
+  if(!video)return;
+  // Don't re-init if already running
+  if(camStream&&camStream.active)return;
+  tryOpenCam();
+}
+
+function showCamPlaceholder(ph,title,sub){
+  if(!ph)return;
+  ph.style.display='block';
+  ph.style.cursor='pointer';
+  ph.onclick=function(){doCap();};
+  ph.innerHTML='<div style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:transform .2s;" ontouchstart="this.style.transform=\'scale(0.95)\'" ontouchend="this.style.transform=\'scale(1)\'">'+
+    '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--brand)" stroke-width="1.8"><rect x="2" y="5" width="20" height="16" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M8 5l1.5-2h5L16 5"/></svg></div>'+
+    '<div style="font-size:15px;font-weight:600;color:var(--text);">'+(title||'点击拍照')+'</div>'+
+    '<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">'+(sub||'点击此处或下方快门调用相机')+'</div></div>';
+}
+
+function camLoading(show){
+  var el=document.getElementById('camLoading');
+  if(!el)return;
+  el.style.display=show?'flex':'none';
+}
+
+function tryOpenCam(){
+  var video=document.getElementById('camVideo');
+  var errEl=document.getElementById('camError');
+  var errMsg=document.getElementById('camErrorMsg');
+  var ph=document.getElementById('recPh');
+  if(!video)return;
+  
+  // Hide error, show loading
+  if(errEl)errEl.style.display='none';
+  
+  // Check if we're in a secure context (HTTPS or localhost)
+  var isSecure=window.isSecureContext||location.hostname==='localhost'||location.hostname==='127.0.0.1';
+  
+  // Check if getUserMedia is supported and we're in secure context
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!isSecure){
+    // Fallback: use input capture (system camera)
+    camLoading(false);
+    showCamPlaceholder(ph,'点击拍照','点击此处或下方快门，调用系统相机拍摄');
+    return;
+  }
+  
+  // Show loading state
+  camLoading(true);
+  if(ph)ph.style.display='none';
+  
+  var constraints={
+    video:{
+      facingMode:{ideal:camFacing},
+      width:{ideal:1920},
+      height:{ideal:1080}
+    },
+    audio:false
+  };
+  
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(function(stream){
+      camLoading(false);
+      camStream=stream;
+      video.srcObject=stream;
+      video.style.display='block';
+      if(ph)ph.style.display='none';
+      if(errEl)errEl.style.display='none';
+      // Start hints when camera is ready
+      video.onloadedmetadata=function(){
+        video.play().catch(function(){});
+        startCamHints();
+      };
+      // Fallback: if metadata doesn't load in 3s, still try to play
+      setTimeout(function(){
+        if(camStream&&camStream.active&&video.paused){
+          video.play().catch(function(){});
+        }
+      },3000);
+    })
+    .catch(function(err){
+      camLoading(false);
+      console.error('Camera error:',err);
+      // Show clickable placeholder to let user take photo or pick image
+      showCamPlaceholder(ph,'点击拍照','点击此处或下方快门，拍照或选择图片');
+    });
+}
+
+function closeCamera(){
+  if(camStream){
+    camStream.getTracks().forEach(function(track){track.stop();});
+    camStream=null;
+  }
+  var video=document.getElementById('camVideo');
+  if(video){
+    video.srcObject=null;
+    video.style.display='none';
+  }
+  camLoading(false);
+  stopCamHints();
+}
+
+function flipCamera(){
+  camFacing=camFacing==='environment'?'user':'environment';
+  if(camStream){
+    closeCamera();
+    setTimeout(tryOpenCam,300);
+  }
+  toast(camFacing==='environment'?'已切换到后置摄像头':'已切换到前置摄像头');
+}
+
+function toggleFlash(){
+  flashOn=!flashOn;
+  var btn=document.getElementById('flashBtn');
+  if(btn){
+    btn.style.background=flashOn?'linear-gradient(135deg,#FFD700,#FFA500)':'';
+    btn.style.color=flashOn?'#fff':'';
+  }
+  // Try to control torch if available
+  if(camStream){
+    var track=camStream.getVideoTracks()[0];
+    if(track&&track.applyConstraints){
+      try{
+        track.applyConstraints({advanced:[{torch:flashOn}]});
+      }catch(e){}
+    }
+  }
+  toast(flashOn?'闪光灯已开启':'闪光灯已关闭');
+}
+
+function toggleGrid(){
+  gridOn=!gridOn;
+  var recArea=document.getElementById('recArea');
+  if(!recArea)return;
+  var grids=recArea.querySelectorAll('[style*="position:absolute;inset:0;pointer-events:none;opacity:0.2"]');
+  var corners=recArea.querySelectorAll('[style*="position:absolute;inset:12px"]');
+  grids.forEach(function(el){el.style.display=gridOn?'block':'none';});
+  corners.forEach(function(el){el.style.display=gridOn?'block':'none';});
+  toast(gridOn?'网格已开启':'网格已关闭');
+}
+
+function openAlbum(){
+  var input=getPhotoInput();
+  input.removeAttribute('capture');
+  input.click();
+}
+
+// Global persistent file input - attached to body, not re-rendered
+var _photoInput=null;
+function getPhotoInput(){
+  if(!_photoInput){
+    _photoInput=document.createElement('input');
+    _photoInput.type='file';
+    _photoInput.accept='image/*';
+    _photoInput.style.position='fixed';
+    _photoInput.style.left='-9999px';
+    document.body.appendChild(_photoInput);
+    _photoInput.onchange=function(e){
+      var file=e.target.files&&e.target.files[0];
+      if(file){
+        var reader=new FileReader();
+        reader.onload=function(ev){
+          processCapturedImage(ev.target.result);
+        };
+        reader.onerror=function(){
+          toast('读取图片失败，请重试');
+        };
+        reader.readAsDataURL(file);
+      }
+      _photoInput.value='';
+    };
+  }
+  return _photoInput;
+}
+
+// Open system camera via input capture (works on HTTP too)
+function openSystemCamera(){
+  var input=getPhotoInput();
+  // Detect mobile device - only set capture attribute on mobile
+  var isMobile=/Android|iPhone|iPad|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)||('ontouchstart' in window&&screen.width<=768);
+  if(isMobile){
+    input.setAttribute('capture',camFacing==='user'?'user':'environment');
+  }else{
+    // Desktop: no capture attribute, opens normal file picker
+    input.removeAttribute('capture');
+  }
+  input.click();
+}
+
+// Capture photo from video stream
+function capturePhotoFromVideo(){
+  var video=document.getElementById('camVideo');
+  if(!video||!camStream)return null;
+  
+  var canvas=document.createElement('canvas');
+  var w=video.videoWidth;
+  var h=video.videoHeight;
+  canvas.width=w;
+  canvas.height=h;
+  var ctx=canvas.getContext('2d');
+  
+  // Flip horizontally if using front camera
+  if(camFacing==='user'){
+    ctx.translate(w,0);
+    ctx.scale(-1,1);
+  }
+  
+  ctx.drawImage(video,0,0,w,h);
+  return canvas.toDataURL('image/jpeg',0.9);
+}
+
+// Process a captured image (from camera or album)
+function processCapturedImage(dataUrl){
+  var img=document.getElementById('recImg');
+  var video=document.getElementById('camVideo');
+  var ph=document.getElementById('recPh');
+  
+  if(img){
+    img.src=dataUrl;
+    img.style.display='block';
+  }
+  if(video)video.style.display='none';
+  if(ph)ph.style.display='none';
+  
+  // Flash effect
+  var recArea=document.getElementById('recArea');
+  if(recArea){
+    var flash=document.createElement('div');
+    flash.style.cssText='position:absolute;inset:0;background:#fff;z-index:20;opacity:1;transition:opacity .3s;border-radius:18px;';
+    recArea.appendChild(flash);
+    requestAnimationFrame(function(){
+      flash.style.opacity='0';
+      setTimeout(function(){flash.remove();},300);
+    });
+  }
+  
+  // Pause camera if active
+  if(camStream){
+    var track=camStream.getVideoTracks()[0];
+    if(track)track.enabled=false;
+  }
+  
+  stopCamHints();
+  
+  // Auto-start AI recognition
+  setTimeout(function(){startAIRecognition();},400);
+}
+
+// Resume camera after returning from result
+function resumeCamera(){
+  var video=document.getElementById('camVideo');
+  var img=document.getElementById('recImg');
+  var ph=document.getElementById('recPh');
+  var info=document.getElementById('recInfo');
+  
+  if(img)img.style.display='none';
+  if(info)info.style.display='none';
+  
+  if(camStream){
+    var track=camStream.getVideoTracks()[0];
+    if(track)track.enabled=true;
+    if(video){
+      video.style.display='block';
+      video.play().catch(function(){});
+    }
+    camLoading(false);
+    startCamHints();
+  }else{
+    // No camera stream - try to reopen or show placeholder
+    camLoading(false);
+    showCamPlaceholder(ph,'点击拍照','点击此处或下方快门，调用相机拍摄');
+  }
+}
+
 function doCap(){
+  // If real camera is active and video is ready, capture from video
+  if(camStream&&camStream.active){
+    var video=document.getElementById('camVideo');
+    if(video&&video.videoWidth>0){
+      var dataUrl=capturePhotoFromVideo();
+      if(dataUrl){
+        processCapturedImage(dataUrl);
+        return;
+      }
+    }
+    // Camera stream active but video not ready - reinitialize
+    console.warn('Camera stream active but video not ready, falling back');
+  }
+  // No realtime camera or capture failed - use system camera via input capture
+  openSystemCamera();
+}
+
+// AI Recognition flow - called after photo is captured
+function startAIRecognition(){
 var btn=document.getElementById('capBtn');
-btn.style.animation='pulse .8s infinite';
+if(btn)btn.style.animation='pulse .8s infinite';
 var p=document.createElement('style');p.textContent='@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}';document.head.appendChild(p);
-document.getElementById('recPh').style.display='none';
-document.getElementById('recImg').style.display='none';
-document.getElementById('recK').style.display='none';
-document.getElementById('recInfo').style.display='none';
+var ph=document.getElementById('recPh');if(ph)ph.style.display='none';
+var recImg=document.getElementById('recImg');if(recImg)recImg.style.display='block';
+var recK=document.getElementById('recK');if(recK)recK.style.display='none';
+var recInfo=document.getElementById('recInfo');if(recInfo)recInfo.style.display='none';
 
 // AI recognition step animation
 var recArea=document.getElementById('recArea');
+if(!recArea)return;
 var stepEl=document.createElement('div');
 stepEl.id='aiSteps';
-stepEl.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:2;background:rgba(255,255,255,0.3);';
+stepEl.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:15;background:rgba(0,0,0,0.25);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border-radius:18px;';
 var steps=[
 {t:'正在拍摄...',i:'📷',d:400},
 {t:'AI 识别食物中...',i:'🔍',d:600},
 {t:'检测到多种食物，分离识别中...',i:'🍽️',d:500},
-{t:'估算份量...',i:'⚖️',d:500},
+{t:'AI 智能润色优化中...',i:'✨',d:500},
+{t:'估算份量...',i:'⚖️',d:400},
 {t:'匹配营养数据库...',i:'🥗',d:400},
 ];
 var si=0;
 function nextStep(){
-if(si>=steps.length){showResult();return;}
+if(si>=steps.length){showAIRecognitionResult();return;}
 var s=steps[si];
-stepEl.innerHTML='<div style="font-size:36px;animation:stepBounce .6s ease-out;">'+s.i+'</div><div style="font-size:14px;color:var(--text-sub);font-weight:500;">'+s.t+'</div>'+
-'<div style="width:120px;height:4px;border-radius:2px;background:var(--border);overflow:hidden;margin-top:4px;"><div style="height:100%;background:linear-gradient(90deg,var(--brand),var(--accent));border-radius:2px;animation:loadBar '+s.d/1000+'s linear;"></div></div>';
+stepEl.innerHTML='<div style="font-size:36px;animation:stepBounce .6s ease-out;">'+s.i+'</div><div style="font-size:14px;color:#fff;font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,0.3);">'+s.t+'</div>'+
+'<div style="width:120px;height:4px;border-radius:2px;background:rgba(255,255,255,0.3);overflow:hidden;margin-top:4px;"><div style="height:100%;background:linear-gradient(90deg,#7A9E6E,#A8E6A1);border-radius:2px;animation:loadBar '+s.d/1000+'s linear;"></div></div>';
 if(!document.getElementById('stepBS')){var bs=document.createElement('style');bs.id='stepBS';bs.textContent='@keyframes stepBounce{0%{transform:scale(0.5);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}@keyframes loadBar{from{width:0%}to{width:100%}}';document.head.appendChild(bs);}
 si++;
 setTimeout(nextStep,s.d);
 }
 recArea.appendChild(stepEl);
 nextStep();
+}
 
-function showResult(){
+function showAIRecognitionResult(){
 var se=document.getElementById('aiSteps');if(se)se.remove();
-btn.style.animation='';
+var btn=document.getElementById('capBtn');
+if(btn)btn.style.animation='';
 
 // Multi-target: 40% chance to detect multiple foods
 var isMulti=Math.random()<0.4;
@@ -1350,7 +1748,9 @@ curCands=cands;
 }
 
 var img=document.getElementById('recImg');
-img.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><rect width="150" height="150" fill="#EEF3EA" rx="16"/><text x="75" y="88" text-anchor="middle" font-size="56">'+curFood.e+'</text></svg>');
+// Keep the real photo - don't replace with SVG
+// Just add AI enhancement effect (simulated food enhancement)
+img.style.filter='saturate(1.15) contrast(1.05) brightness(1.02)';
 img.style.display='block';
 var k=document.getElementById('recK');
 k.textContent=curFood.k+' kcal';k.style.display='block';
@@ -1412,6 +1812,12 @@ sk.innerHTML=
 '<button onclick="hideSheet()" style="width:28px;height:28px;border-radius:50%;background:var(--border);border:none;font-size:16px;color:var(--text-sub);cursor:pointer;">×</button>'+
 '<span style="font-size:15px;font-weight:600;">调整食用比例</span>'+
 '<button onclick="confirmMultiRec()" style="padding:6px 16px;border-radius:16px;background:var(--brand);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;">全部保存</button></div>'+
+// Action buttons
+'<div style="display:flex;gap:8px;margin-bottom:12px;">'+
+'<div onclick="addMultiToLive()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:12px;background:rgba(122,158,110,0.12);color:var(--brand);font-size:12px;font-weight:600;cursor:pointer;">'+
+'<span>✨</span>全部加入实况</div>'+
+'<div onclick="retakePhoto()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:12px;background:var(--border);color:var(--text-sub);font-size:12px;font-weight:600;cursor:pointer;">'+
+'<span>📷</span>重新拍</div></div>'+
 foods.map(function(d,i){
 return '<div style="margin-bottom:12px;padding:10px 12px;border-radius:14px;background:var(--bg);">'+
 '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'+
@@ -1424,6 +1830,28 @@ return '<div style="margin-bottom:12px;padding:10px 12px;border-radius:14px;back
 '<span id="mv'+i+'" style="font-size:12px;color:var(--text-sub);width:36px;text-align:right;">100%</span></div></div>';
 }).join('');
 }
+function addMultiToLive(){
+  if(!curMultiFoods||curMultiFoods.length===0){toast('没有可添加的食物');return;}
+  var now=new Date();
+  var t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  var count=0;
+  curMultiFoods.forEach(function(df){
+    plogState.stickers.push({
+      e:df.food.e,
+      t:t,
+      x:Math.floor(Math.random()*100)-50,
+      y:Math.floor(Math.random()*100)-50,
+      s:56,
+      label:df.food.n,
+      center:false
+    });
+    count++;
+  });
+  hideSheet();
+  toast('已添加 '+count+' 个食物到实况');
+  setTimeout(function(){sw('plog');},800);
+}
+
 function updMultiK(i){
 var sl=document.getElementById('mr'+i);if(!sl)return;
 var pct=parseInt(sl.value);
@@ -1451,7 +1879,6 @@ renderHome();
 sw('home');
 toast('已记录 '+curMultiFoods.length+' 种食物');
 }
-}
 
 function showSheet(){
 var sk=document.getElementById('recSheet');
@@ -1462,6 +1889,14 @@ sk.innerHTML=
 '<button onclick="hideSheet()" style="width:28px;height:28px;border-radius:50%;background:var(--border);border:none;font-size:16px;color:var(--text-sub);cursor:pointer;">×</button>'+
 '<span style="font-size:15px;font-weight:600;">食用比例 <span id="sR">61</span>%</span>'+
 '<button onclick="confirmRec()" style="width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;border:none;font-size:16px;cursor:pointer;">✓</button></div>'+
+// Action buttons: add to live, doodle, retake
+'<div style="display:flex;gap:8px;margin-bottom:12px;">'+
+'<div onclick="addFoodToLive()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:12px;background:rgba(122,158,110,0.12);color:var(--brand);font-size:12px;font-weight:600;cursor:pointer;">'+
+'<span>✨</span>加入实况</div>'+
+'<div onclick="startFoodDoodle()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:12px;background:rgba(232,145,58,0.12);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">'+
+'<span>🎨</span>涂鸦编辑</div>'+
+'<div onclick="retakePhoto()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border-radius:12px;background:var(--border);color:var(--text-sub);font-size:12px;font-weight:600;cursor:pointer;">'+
+'<span>📷</span>重新拍</div></div>'+
 // Portion quick adjust (少/标准/多)
 '<div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">份量调整：</div>'+
 '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
@@ -1495,6 +1930,56 @@ else{b.classList.remove('active');b.style.background='transparent';b.style.color
 });
 }
 function hideSheet(){document.getElementById('recSheet').style.display='none';}
+
+// ===== Photo Actions =====
+function retakePhoto(){
+  hideSheet();
+  var img=document.getElementById('recImg');
+  var info=document.getElementById('recInfo');
+  if(img){img.style.display='none';img.style.filter='';}
+  if(info)info.style.display='none';
+  // Resume camera or show placeholder
+  resumeCamera();
+  toast('准备重新拍摄');
+}
+
+function addFoodToLive(){
+  if(!curFood){toast('请先识别食物');return;}
+  var now=new Date();
+  var t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  // Add sticker to plog state
+  plogState.stickers.push({
+    e:curFood.e,
+    t:t,
+    x:Math.floor(Math.random()*60)-30,
+    y:Math.floor(Math.random()*60)-30,
+    s:56,
+    label:curFood.n,
+    center:false
+  });
+  hideSheet();
+  toast('已添加到实况：'+curFood.n);
+  // Auto-switch to plog page after a short delay
+  setTimeout(function(){sw('plog');},800);
+}
+
+function startFoodDoodle(){
+  if(!curFood){toast('请先识别食物');return;}
+  hideSheet();
+  toast('进入涂鸦编辑模式');
+  // Switch to doodle page with the food photo
+  setTimeout(function(){
+    sw('doodle');
+    // Pass food info to doodle page
+    setTimeout(function(){
+      var doodleImg=document.getElementById('doodleImg');
+      var recImg=document.getElementById('recImg');
+      if(doodleImg&&recImg&&recImg.src){
+        doodleImg.src=recImg.src;
+      }
+    },200);
+  },300);
+}
 function selCand(i){
 if(!curCands[i])return;
 curFood=curCands[i];
@@ -1563,10 +2048,10 @@ save();hideSheet();
 document.getElementById('recImg').style.display='none';
 document.getElementById('recK').style.display='none';
 document.getElementById('recInfo').style.display='none';
-document.getElementById('recPh').style.display='block';
 curFood=null;toast('已记录 '+ak+' kcal');
 curDate=null;
-setTimeout(function(){sw('home');},500);
+// Resume camera for next photo
+resumeCamera();
 }
 function manualE(){
 var mid=genModalId();
@@ -1611,7 +2096,7 @@ el.style.background='rgba(255,255,255,0.15)';el.style.color='#fff';
 }
 
 // ===== PLOG (Live Photo Editor) =====
-var plogState={duration:5,bgIndex:0,fxIndex:-1,doodleColor:'#FFEB3B',doodleSize:4,doodling:false};
+var plogState={duration:5,bgIndex:0,fxIndex:-1,doodleColor:'#FFEB3B',doodleSize:4,doodling:false,stickers:[]};
 var PLOG_BGS=[
 {name:'纯黑',css:'#000'},
 {name:'深蓝',css:'linear-gradient(135deg,#0F0C29,#302B63,#24243E)'},
@@ -1631,17 +2116,34 @@ var PLOG_FX=[
 {name:'缩放',cls:'fx-zoom'},
 ];
 var PLOG_COLORS=['#FFFFFF','#FFEB3B','#26C6DA','#FF6B6B','#A8E6A1','#FF8E72','#C792EA','#FFC107'];
-function renderPlog(){
-var photos=[
-{e:'🍰',t:'21:07',x:50,y:0,s:72,label:'淋酱樱桃甜点',center:true},
-{e:'🧁',t:'21:02',x:-55,y:-45,s:56,label:'红丝绒纸杯蛋糕'},
-{e:'🥤',t:'21:05',x:55,y:-50,s:56,label:'粉红饮料'},
-{e:'🍓',t:'21:03',x:80,y:30,s:56,label:'草莓奶油蛋糕'},
-{e:'🧊',t:'21:04',x:50,y:80,s:56,label:'草莓芭乐冰沙'},
-{e:'🌽',t:'20:58',x:-55,y:75,s:56,label:'甜玉米'},
-{e:'🥚',t:'20:50',x:-85,y:20,s:56,label:'芦笋炒鸡蛋'},
-{e:'☕',t:'20:45',x:-80,y:-20,s:56,label:'瑞幸咖啡饮品'},
+// Sticker library - food emojis that can be added
+var PLOG_STICKER_LIB=[
+'🍰','🧁','🥤','🍓','🧊','🌽','🥚','☕',
+'🍎','🍊','🍋','🍌','🍉','🍇','🍑','🥝',
+'🍔','🍕','🌮','🍣','🍜','🍚','🍞','🥐',
+'🥗','🍲','🥘','🍛','🍱','🥟','🍤','🍙',
+'🍪','🍩','🍮','🍯','🍫','🍬','🍭','🍿',
+'🥛','🧃','🍵','🍶','🍷','🍺','🥂','🍸',
+'🥑','🥕','🌶️','🍆','🥦','🌽','🥔','🍠',
+'🐱','🐶','🐰','🐻','🐼','🦊','🐨','🐯',
+'🌸','🌺','🌻','🌹','🍀','🌙','⭐','❤️',
+'✨','💫','🌟','⚡','🔥','💧','🌈','☀️'
 ];
+function renderPlog(){
+// Initialize default stickers if empty
+if(plogState.stickers.length===0){
+  plogState.stickers=[
+    {e:'🍰',t:'21:07',x:0,y:0,s:72,label:'淋酱樱桃甜点',center:true},
+    {e:'🧁',t:'21:02',x:-55,y:-45,s:56,label:'红丝绒纸杯蛋糕'},
+    {e:'🥤',t:'21:05',x:55,y:-50,s:56,label:'粉红饮料'},
+    {e:'🍓',t:'21:03',x:80,y:30,s:56,label:'草莓奶油蛋糕'},
+    {e:'🧊',t:'21:04',x:50,y:80,s:56,label:'草莓芭乐冰沙'},
+    {e:'🌽',t:'20:58',x:-55,y:75,s:56,label:'甜玉米'},
+    {e:'🥚',t:'20:50',x:-85,y:20,s:56,label:'芦笋炒鸡蛋'},
+    {e:'☕',t:'20:45',x:-80,y:-20,s:56,label:'瑞幸咖啡饮品'},
+  ];
+}
+var photos=plogState.stickers;
 var today=new Date();
 var dateStr=(today.getMonth()+1)+'月'+today.getDate()+'日';
 var phCount=photos.length;
@@ -1650,6 +2152,8 @@ var isCenter=p.center;var sz=p.s;
 return '<div class="pp" data-idx="'+i+'" style="position:absolute;left:50%;top:50%;transform:translate(calc(-50% + '+p.x+'px),calc(-50% + '+p.y+'px));width:'+sz+'px;height:'+sz+'px;border-radius:'+(isCenter?'50%':'16px')+';display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:grab;'+(isCenter?'background:rgba(255,255,255,0.95);box-shadow:0 8px 24px rgba(0,0,0,0.4),0 0 0 4px rgba(255,255,255,0.1);z-index:5;':'background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);box-shadow:0 4px 12px rgba(0,0,0,0.3);')+'">'+
 '<span style="font-size:'+(isCenter?'36px':'24px')+';line-height:1;">'+p.e+'</span>'+
 (isCenter?'<div style="font-size:9px;color:#333;font-weight:600;margin-top:2px;">'+p.label+'</div><div style="font-size:8px;color:#999;">'+p.t+'</div>':'<div style="position:absolute;bottom:3px;font-size:8px;color:rgba(255,255,255,0.6);">'+p.t+'</div>')+
+// Delete button
+'<div onclick="event.stopPropagation();removePlogSticker('+i+')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:rgba(255,59,48,0.9);color:#fff;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,0.3);opacity:0;transition:opacity .2s;" class="pp-del">×</div>'+
 '</div>';
 }).join('');
 
@@ -1693,6 +2197,7 @@ phHtml+
 // Bottom toolbar
 '<div style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;display:flex;align-items:center;justify-content:space-around;gap:0;padding:12px 8px 12px 20px;background:#1C1C1E;border-radius:999px;box-shadow:0 8px 32px rgba(0,0,0,0.3);min-width:320px;max-width:360px;" id="plogToolbar">'+
 '<div onclick="togglePlogPanel(\'plogDurPanel\')" style="display:flex;align-items:center;gap:3px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;padding:4px 8px;" id="plogDurBtn">'+plogState.duration+'s<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#fff" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>'+
+'<div onclick="togglePlogPanel(\'plogStickerPanel\')" style="font-size:18px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;">🎨</div>'+
 '<div onclick="togglePlogPanel(\'plogTextPanel\')" style="font-size:17px;font-weight:600;color:#fff;cursor:pointer;padding:4px 8px;">Aa</div>'+
 '<div onclick="togglePlogPanel(\'plogFxPanel\')" style="cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;">'+
 '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z"/></svg></div>'+
@@ -1701,6 +2206,17 @@ phHtml+
 '<div onclick="closePlogToolbar()" style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:4px;">'+
 '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></div>'+
 '</div>'+
+
+// Sticker panel
+'<div id="plogStickerPanel" class="plog-float-panel" style="display:none;flex-direction:column;gap:8px;padding:12px 14px;max-width:320px;">'+
+'<div style="font-size:11px;color:rgba(255,255,255,0.5);text-align:center;">点击贴纸添加到画面</div>'+
+'<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:160px;overflow-y:auto;">'+
+PLOG_STICKER_LIB.map(function(emoji,i){
+  return '<div onclick="addPlogSticker(\''+emoji+'\')" style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:all .15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.2)\';this.style.transform=\'scale(1.2)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.08)\';this.style.transform=\'scale(1)\'">'+emoji+'</div>';
+}).join('')+'</div>'+
+'<div style="display:flex;gap:6px;justify-content:center;">'+
+'<div onclick="clearAllPlogStickers()" style="font-size:11px;color:rgba(255,255,255,0.5);padding:4px 12px;border-radius:8px;background:rgba(255,59,48,0.2);cursor:pointer;">清空全部</div>'+
+'<div onclick="resetPlogLayout()" style="font-size:11px;color:rgba(255,255,255,0.5);padding:4px 12px;border-radius:8px;background:rgba(255,255,255,0.1);cursor:pointer;">恢复默认</div></div></div>'+
 
 // Duration panel
 '<div id="plogDurPanel" class="plog-float-panel" style="display:none;">'+
@@ -1770,6 +2286,9 @@ var ps=document.createElement('style');ps.id='plogPanelStyle';ps.textContent=
 '.plog-text-color.active{border-color:#fff;transform:scale(1.2);}'+
 '.plog-doodle-btn{flex:1;text-align:center;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;}'+
 '.plog-doodle-btn.active{background:#7A9E6E;}'+
+// Sticker delete button - show on hover
+'.pp:hover .pp-del{opacity:1!important;}'+
+'.pp:active .pp-del{opacity:1!important;}'+
 // FX animations
 '@keyframes fx-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}'+
 '@keyframes fx-rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}'+
@@ -1790,7 +2309,7 @@ setTimeout(function(){initPlogDrag();initPlogDoodle();},100);
 }
 // Panel toggle
 function togglePlogPanel(id){
-var panels=['plogDurPanel','plogTextPanel','plogFxPanel','plogBgPanel','plogDoodlePanel'];
+var panels=['plogDurPanel','plogStickerPanel','plogTextPanel','plogFxPanel','plogBgPanel','plogDoodlePanel'];
 panels.forEach(function(pid){
 var el=document.getElementById(pid);
 if(el){if(pid===id){el.style.display=el.style.display==='flex'?'none':'flex';}else{el.style.display='none';}}
@@ -1799,7 +2318,7 @@ if(el){if(pid===id){el.style.display=el.style.display==='flex'?'none':'flex';}el
 if(id!=='plogDoodlePanel'&&plogState.doodling){stopPlogDoodle();}
 }
 function closePlogToolbar(){
-var panels=['plogDurPanel','plogTextPanel','plogFxPanel','plogBgPanel','plogDoodlePanel'];
+var panels=['plogDurPanel','plogStickerPanel','plogTextPanel','plogFxPanel','plogBgPanel','plogDoodlePanel'];
 panels.forEach(function(pid){var el=document.getElementById(pid);if(el)el.style.display='none';});
 if(plogState.doodling)stopPlogDoodle();
 toast('已退出编辑');
@@ -1943,19 +2462,95 @@ var btn=document.getElementById('plogEraserBtn');
 if(btn)btn.classList.toggle('active',plogState.eraser);
 toast(plogState.eraser?'橡皮擦已开启':'橡皮擦已关闭');
 }
-function resetPlogLayout(){
-var inner=document.getElementById('plogCanvasInner');if(!inner)return;
-var pps=inner.querySelectorAll('.pp');
-var photos=[
-{x:50,y:0,center:true},{x:-55,y:-45},{x:55,y:-50},{x:80,y:30},
-{x:50,y:80},{x:-55,y:75},{x:-85,y:20},{x:-80,y:-20}
-];
-pps.forEach(function(p,i){
-if(photos[i]){
-p.style.left='50%';p.style.top='50%';
-p.style.transform='translate(calc(-50% + '+photos[i].x+'px),calc(-50% + '+photos[i].y+'px))';
+// ===== Sticker Management =====
+function addPlogSticker(emoji){
+  // Add at random position near center
+  var x=Math.floor(Math.random()*80)-40;
+  var y=Math.floor(Math.random()*80)-40;
+  var now=new Date();
+  var t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  plogState.stickers.push({
+    e:emoji,
+    t:t,
+    x:x,
+    y:y,
+    s:56,
+    label:'',
+    center:false
+  });
+  // Re-render stickers
+  renderPlogStickers();
+  // Re-init drag
+  setTimeout(function(){initPlogDrag();},50);
+  toast('已添加贴纸');
 }
-});
+
+function removePlogSticker(idx){
+  if(idx<0||idx>=plogState.stickers.length)return;
+  plogState.stickers.splice(idx,1);
+  renderPlogStickers();
+  // Update count
+  var countBadge=document.querySelector('#pg-plog [style*="background:#7A9E6E"]');
+  if(countBadge)countBadge.textContent=plogState.stickers.length;
+  toast('已删除贴纸');
+}
+
+function clearAllPlogStickers(){
+  if(plogState.stickers.length===0)return;
+  var m=modal('<div style="font-size:16px;font-weight:600;margin-bottom:8px;">清空所有贴纸？</div><div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">此操作不可撤销</div><div style="display:flex;gap:10px;"><button onclick="this.closest(\'.lg-modal\').parentElement.remove();" style="flex:1;padding:10px;border-radius:12px;background:rgba(0,0,0,0.06);color:var(--text);cursor:pointer;border:none;font-size:14px;font-weight:500;">取消</button><button onclick="doClearAllStickers();this.closest(\'.lg-modal-backdrop\').remove();" style="flex:1;padding:10px;border-radius:12px;background:#FF3B30;color:#fff;cursor:pointer;border:none;font-size:14px;font-weight:600;">清空</button></div>');
+}
+
+function doClearAllStickers(){
+  plogState.stickers=[];
+  renderPlogStickers();
+  var countBadge=document.querySelector('#pg-plog [style*="background:#7A9E6E"]');
+  if(countBadge)countBadge.textContent='0';
+  toast('已清空所有贴纸');
+}
+
+function renderPlogStickers(){
+  var canvasInner=document.getElementById('plogCanvasInner');
+  if(!canvasInner)return;
+  // Remove existing stickers
+  var existing=canvasInner.querySelectorAll('.pp');
+  existing.forEach(function(el){el.remove();});
+  // Re-render from state
+  var photos=plogState.stickers;
+  var phHtml=photos.map(function(p,i){
+    var isCenter=p.center;var sz=p.s;
+    return '<div class="pp" data-idx="'+i+'" style="position:absolute;left:50%;top:50%;transform:translate(calc(-50% + '+p.x+'px),calc(-50% + '+p.y+'px));width:'+sz+'px;height:'+sz+'px;border-radius:'+(isCenter?'50%':'16px')+';display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:grab;'+(isCenter?'background:rgba(255,255,255,0.95);box-shadow:0 8px 24px rgba(0,0,0,0.4),0 0 0 4px rgba(255,255,255,0.1);z-index:5;':'background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);box-shadow:0 4px 12px rgba(0,0,0,0.3);')+'">'+
+    '<span style="font-size:'+(isCenter?'36px':'24px')+';line-height:1;">'+p.e+'</span>'+
+    (isCenter?'<div style="font-size:9px;color:#333;font-weight:600;margin-top:2px;">'+p.label+'</div><div style="font-size:8px;color:#999;">'+p.t+'</div>':'<div style="position:absolute;bottom:3px;font-size:8px;color:rgba(255,255,255,0.6);">'+p.t+'</div>')+
+    '<div onclick="event.stopPropagation();removePlogSticker('+i+')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:rgba(255,59,48,0.9);color:#fff;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,0.3);opacity:0;transition:opacity .2s;" class="pp-del">×</div>'+
+    '</div>';
+  }).join('');
+  // Insert before text layer
+  var textLayer=document.getElementById('plogTextLayer');
+  if(textLayer){
+    var temp=document.createElement('div');
+    temp.innerHTML=phHtml;
+    while(temp.firstChild){
+      canvasInner.insertBefore(temp.firstChild,textLayer);
+    }
+  }
+  // Update count badge
+  var countBadge=document.querySelector('#pg-plog [style*="background:#7A9E6E"]');
+  if(countBadge)countBadge.textContent=plogState.stickers.length;
+}
+
+function resetPlogLayout(){
+plogState.stickers=[
+  {e:'🍰',t:'21:07',x:0,y:0,s:72,label:'淋酱樱桃甜点',center:true},
+  {e:'🧁',t:'21:02',x:-55,y:-45,s:56,label:'红丝绒纸杯蛋糕'},
+  {e:'🥤',t:'21:05',x:55,y:-50,s:56,label:'粉红饮料'},
+  {e:'🍓',t:'21:03',x:80,y:30,s:56,label:'草莓奶油蛋糕'},
+  {e:'🧊',t:'21:04',x:50,y:80,s:56,label:'草莓芭乐冰沙'},
+  {e:'🌽',t:'20:58',x:-55,y:75,s:56,label:'甜玉米'},
+  {e:'🥚',t:'20:50',x:-85,y:20,s:56,label:'芦笋炒鸡蛋'},
+  {e:'☕',t:'20:45',x:-80,y:-20,s:56,label:'瑞幸咖啡饮品'},
+];
+renderPlogStickers();
+setTimeout(function(){initPlogDrag();},50);
 toast('布局已重置');
 }
 function initPlogDrag(){
@@ -3174,11 +3769,12 @@ checkOnboard();
     }
   }
   
+  // Optimized: only scan targeted selectors, not all elements
   function enhanceAll(){
     var phone=document.getElementById('app');
     if(!phone)return;
     
-    // Find all glass-like elements
+    // Only scan specific glass-like selectors (not all elements)
     var selectors=[
       '.card',
       '.tabbar',
@@ -3192,33 +3788,41 @@ checkOnboard();
       phone.querySelectorAll(sel).forEach(enhanceElement);
     });
     
-    // Find elements with backdrop-filter inline styles
-    var all=phone.querySelectorAll('*');
-    for(var i=0;i<all.length;i++){
-      var el=all[i];
-      var bf=el.style.backdropFilter||el.style.webkitBackdropFilter;
-      if(bf&&bf.indexOf('blur')>=0){
-        // Only enhance if it looks like a glass surface (has border radius)
-        var br=el.style.borderRadius;
-        if(br&&br!=='0px'&&br!=='0'){
-          enhanceElement(el);
-        }
+    // Scan elements with backdrop-filter inline styles - limited depth
+    var glassEls=phone.querySelectorAll('[style*="blur"]');
+    for(var i=0;i<glassEls.length;i++){
+      var el=glassEls[i];
+      var br=el.style.borderRadius;
+      if(br&&br!=='0px'&&br!=='0'){
+        enhanceElement(el);
       }
     }
   }
   
-  // Run after a short delay to ensure DOM is ready
+  // Throttled enhance - uses rAF + debounce for performance
+  var _enhancePending=false;
+  function scheduleEnhance(){
+    if(_enhancePending)return;
+    _enhancePending=true;
+    requestAnimationFrame(function(){
+      setTimeout(function(){
+        _enhancePending=false;
+        enhanceAll();
+      },200);
+    });
+  }
+  
+  // Run after DOM is ready
   setTimeout(enhanceAll,500);
   
-  // Re-enhance when pages change (observe DOM mutations)
+  // Throttled MutationObserver - only fires once per batch of changes
   var observer=new MutationObserver(function(mutations){
     var shouldEnhance=false;
-    mutations.forEach(function(m){
-      if(m.addedNodes&&m.addedNodes.length>0)shouldEnhance=true;
-    });
+    for(var i=0;i<mutations.length;i++){
+      if(mutations[i].addedNodes&&mutations[i].addedNodes.length>0){shouldEnhance=true;break;}
+    }
     if(shouldEnhance){
-      clearTimeout(window._lgEnhanceTimer);
-      window._lgEnhanceTimer=setTimeout(enhanceAll,100);
+      scheduleEnhance();
     }
   });
   

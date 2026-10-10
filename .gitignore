@@ -1,4 +1,61 @@
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 测试
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# 生产构建
+*.tsbuildinfo
+next-env.d.ts
+
+# 环境变量（不要提交真实 key！）
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# Vercel
+.vercel
+
+# Supabase
+supabase/.temp
+supabase/.branches
+
+# Android 工程构建产物与本地配置
+android-app/.gradle/
+android-app/local.properties
+android-app/app/build/
+
+# 工具生成物
 .screenshots/
 .trae-html-share-packages/
 .uploads/
-*.log

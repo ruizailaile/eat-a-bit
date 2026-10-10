@@ -1,0 +1,43 @@
+# A string used to distinguish different Supabase projects.
+project_id = "eat-little"
+
+# The path to the "supabase" directory in your project.
+[supabase]
+project_id = "eat-little"
+
+# Local development configuration
+[api]
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+port = 54323
+api_url = "http://127.0.0.1:54321"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+# Email auth (local dev - confirm email turned off for convenience)
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+secure_email_change = false
+
+# Storage
+[storage]
+file_size_limit = 10485760
+
+# Edge Functions
+[functions.hello_world]
+verify_jwt = true

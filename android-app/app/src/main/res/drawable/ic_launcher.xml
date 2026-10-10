@@ -1,0 +1,31 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 背景圆角方块 -->
+    <path
+        android:fillColor="#7A9E6E"
+        android:pathData="M24,4 L84,4 A20,20 0 0 1 104,24 L104,84 A20,20 0 0 1 84,104 L24,104 A20,20 0 0 1 4,84 L4,24 A20,20 0 0 1 24,4 Z" />
+
+    <!-- 餐盘外圈 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,26 A28,28 0 1 1 53.99,26 Z" />
+
+    <!-- 餐盘内圈 -->
+    <path
+        android:fillColor="#7A9E6E"
+        android:pathData="M54,42 A12,12 0 1 1 53.99,42 Z" />
+
+    <!-- 叉子 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,72 h4 v10 h-4 Z M34,72 h4 v10 h-4 Z M30,72 h4 v10 h-4 Z" />
+
+    <!-- 勺子 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M78,70 A6,7 0 1 1 77.99,70 Z M76.5,77 h3 v7 h-3 Z" />
+</vector>
