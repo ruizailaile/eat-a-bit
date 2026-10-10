@@ -1756,14 +1756,24 @@ function parseFoodsFromText(text){
   });
 }
 
-// 对 429（模型超载）/ 5xx 等瞬时错误做有限重试
-function aiPostRetry(url,headers,body,tries){
+// 对 429（模型超载）/ 5xx 等瞬时错误做有限重试（指数退避；GLM-4.6V-Flash 高峰期常限流）
+function aiPostRetry(url,headers,body,tries,attempt){
+  attempt=attempt||1;
   return aiHttpPost(url,headers,body).then(function(env){
     var transient=!env.ok&&(env.status===429||env.status>=500);
-    if(!transient||tries<=1)return env;
-    return new Promise(function(r){setTimeout(r,1500);})
-      .then(function(){return aiPostRetry(url,headers,body,tries-1);});
+    if(!transient||attempt>=tries)return env;
+    var backoff=[0,2000,5000,10000,20000][attempt]||20000;
+    return new Promise(function(r){setTimeout(r,backoff);})
+      .then(function(){return aiPostRetry(url,headers,body,tries,attempt+1);});
   });
+}
+
+// 把常见错误翻译成用户能懂的提示
+function aiErrorText(status,body){
+  var b=String(body||'');
+  if(status===401||status===403||b.indexOf('"401"')>=0||b.indexOf('令牌')>=0)return 'API Key 无效或已过期，请在「AI 识别设置」中检查';
+  if(status===429||b.indexOf('1305')>=0||b.indexOf('访问量过大')>=0)return 'AI 模型当前繁忙，请稍等几秒再拍一次';
+  return '接口返回 '+status+'：'+b.replace(/\s+/g,' ').slice(0,120);
 }
 
 // 调用视觉模型，返回 {ok:true,foods:[...]} 或 {ok:false,error:'...'}
@@ -1778,10 +1788,10 @@ function callVisionAPI(dataUrl){
     max_tokens:4096,
     temperature:0.2
   };
-  return aiPostRetry(c.url,{'Content-Type':'application/json','Authorization':'Bearer '+c.key},JSON.stringify(payload),3)
+  return aiPostRetry(c.url,{'Content-Type':'application/json','Authorization':'Bearer '+c.key},JSON.stringify(payload),5)
     .then(function(env){
       if(!env.ok){
-        return {ok:false,error:'接口返回 '+env.status+'：'+String(env.body||'').replace(/\s+/g,' ').slice(0,160)};
+        return {ok:false,error:aiErrorText(env.status,env.body)};
       }
       var json=null;
       try{json=JSON.parse(env.body);}catch(e){return {ok:false,error:'接口返回的不是合法 JSON'};}
@@ -1814,7 +1824,7 @@ function finishAIRecognition(){
   var waited=0;
   var timer=setInterval(function(){
     waited+=300;
-    if(aiReqResult||waited>=90000){
+    if(aiReqResult||waited>=150000){
       clearInterval(timer);
       onAIResult(aiReqResult);
     }
