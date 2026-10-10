@@ -1797,14 +1797,18 @@ function callVisionAPI(dataUrl){
       if(!text)return {ok:false,error:'接口未返回识别内容'};
       var foods=parseFoodsFromText(text);
       if(foods===null)return {ok:false,error:'无法解析识别结果'};
-      if(!foods.length)return {ok:false,error:'没有识别到食物'};
+      // foods 为空数组属于「正常结果」（图中确实没有食物），不能当成失败，
+      // 否则会被回退成随机演示结果，出现「拍书本也报食物、每次还都不一样」的问题。
       return {ok:true,foods:foods};
     });
 }
 
 // 动画结束后：有配置就等真实结果，否则用演示结果
 function finishAIRecognition(){
-  if(!aiConfigured()||!aiReqPromise){showAIRecognitionResult();return;}
+  if(!aiConfigured()||!aiReqPromise){
+    if(!aiConfigured())toast('未配置 AI 识别 · 当前为演示结果');
+    showAIRecognitionResult();return;
+  }
   var se=document.getElementById('aiSteps');
   if(se)se.innerHTML='<div style="font-size:36px;">🔍</div><div style="font-size:14px;color:#fff;font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,0.3);">AI 正在识别食物...</div>';
   var waited=0;
@@ -1820,13 +1824,48 @@ function finishAIRecognition(){
 function onAIResult(res){
   var se=document.getElementById('aiSteps');if(se)se.remove();
   var btn=document.getElementById('capBtn');if(btn)btn.style.animation='';
-  if(res&&res.ok&&res.foods&&res.foods.length){
-    try{showRealFoodResult(res.foods);}
-    catch(e){console.error(e);showAIRecognitionResult();}
-  }else{
-    toast('AI 识别失败：'+((res&&res.error)||'未知错误')+'，已展示示例结果');
-    showAIRecognitionResult();
+  if(res&&res.ok){
+    if(res.foods&&res.foods.length){
+      try{showRealFoodResult(res.foods);}
+      catch(e){console.error(e);showAIErrorResult('结果渲染出错');}
+      return;
+    }
+    // AI 正常返回但图中没有食物：如实告知，绝不编造结果
+    showNoFoodResult();
+    return;
   }
+  // 调用失败：明确报错，不展示随机结果
+  var err=(res&&res.error)||'未知错误';
+  toast('AI 识别失败：'+err);
+  showAIErrorResult(err);
+}
+
+// 未识别到食物（模型正常返回，但图中没有食物）
+function showNoFoodResult(){
+  var kEl=document.getElementById('recK');if(kEl)kEl.style.display='none';
+  var img=document.getElementById('recImg');if(img)img.style.display='block';
+  var recInfo=document.getElementById('recInfo');if(!recInfo)return;
+  recInfo.innerHTML=
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+    '<span style="font-size:16px;font-weight:700;">没认出食物</span>'+
+    '<span style="font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600;background:rgba(122,158,110,0.15);color:var(--brand);">AI 识别</span></div>'+
+    '<div style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:14px;">这张照片里没有识别到食物。请对准食物、保持光线充足后再拍一张。</div>'+
+    '<button class="btn btn-p" style="width:100%;" onclick="resumeCamera()">重新拍摄</button>';
+  recInfo.style.display='block';
+}
+
+// 识别调用失败：显示具体原因，方便定位（而不是悄悄给随机结果）
+function showAIErrorResult(msg){
+  var kEl=document.getElementById('recK');if(kEl)kEl.style.display='none';
+  var recInfo=document.getElementById('recInfo');if(!recInfo)return;
+  recInfo.innerHTML=
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+    '<span style="font-size:16px;font-weight:700;">识别失败</span>'+
+    '<span style="font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600;background:rgba(200,80,80,0.12);color:#C85050;">AI 识别</span></div>'+
+    '<div style="font-size:12px;color:var(--text-sub);line-height:1.7;margin-bottom:6px;word-break:break-all;">'+String(msg||'未知错误')+'</div>'+
+    '<div style="font-size:11px;color:var(--text-faint);line-height:1.7;margin-bottom:14px;">可在「我的 → AI 识别设置」检查接口地址、模型名与 Key，并点「测试连通性」。</div>'+
+    '<button class="btn btn-p" style="width:100%;" onclick="resumeCamera()">重新拍摄</button>';
+  recInfo.style.display='block';
 }
 
 // 把接口返回的食物转成应用内部结构
